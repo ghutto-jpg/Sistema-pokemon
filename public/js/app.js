@@ -164,7 +164,7 @@ body{margin:0;background:radial-gradient(1200px 600px at 80% -10%,#2f2a79 0%,tra
 .tc-lines{flex:1;overflow:auto;margin:14px 0}
 .tc-line{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
 .tc-total{display:flex;justify-content:space-between;font:700 20px 'Bricolage Grotesque',sans-serif;margin-bottom:12px}
-@media (max-width:560px){.tc-2{grid-template-columns:1fr}.tc-grid{grid-template-columns:repeat(2,1fr);gap:12px}.tc-card{padding:8px}}
+@media (max-width:560px){.tc-2{grid-template-columns:1fr}.tc-grid{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;perspective:none}.tc-card{padding:8px;border:2px solid var(--gold);border-radius:12px}.tc-shop{padding:14px}.tc-top{padding:14px 16px}.tc-main{padding:0 16px 40px}.tc-price{font-size:18px}.tc-hello h2{font-size:clamp(20px,5vw,28px)}.tc-step button{width:32px;height:32px;border-radius:8px;font-size:18px}.tc-step b{min-width:24px}.tc-cartbtn i{font-size:11px;min-width:20px;height:20px}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 `;
 if (!$("#tc-style")) { const s = document.createElement("style"); s.id = "tc-style"; s.textContent = CSS; document.head.appendChild(s); }
@@ -251,7 +251,7 @@ function tImportar() {
 }
 
 function tConfig() {
-  const rows = S.config.map((c, i) => `<div class="tc-2" style="margin-bottom:8px"><input class="tc-in" data-cfg="${i}" data-f="chave" value="${esc(c.chave ?? "")}" placeholder="Nome"><input class="tc-in" data-cfg="${i}" data-f="valor" value="${esc(c.valor ?? "")}" placeholder="Valor"></div>`).join("");
+  const rows = S.config.map((c, i) => `<div class="tc-2" style="margin-bottom:8px"><input class="tc-in" data-cfg="${i}" data-f="chave" value="${esc(c.chave ?? "")}" placeholder="chave (ex: whatsapp_vendedor)"><input class="tc-in" data-cfg="${i}" data-f="valor" value="${esc(c.valor ?? "")}" placeholder="Valor"></div>`).join("");
   return `<p style="color:var(--mute);margin-top:0">Descontos por tipo de loja, WhatsApp do vendedor e outros ajustes.</p>${rows || `<div class="tc-empty">Nenhuma configuração ainda.</div>`}
   <div class="tc-foot"><button class="tc-btn ghost" data-act="addCfg">Adicionar linha</button><button class="tc-btn" data-act="saveCfg">Salvar configurações</button></div>`;
 }
@@ -292,25 +292,27 @@ function viewClienteLogin() {
 
 const price = (p) => num(p.preco_unitario);
 const priceBox = (p) => num(p.preco_caixa_com_desconto);
+const boxSize = (p) => num(p[F.p.caixa]) || 1;
 // restante = cota menos o que o cliente já pediu; sem cota = sem limite
 const limite = (p) => (p.restante != null ? num(p.restante) : p.cota != null ? num(p.cota) : Infinity);
-const cartCount = () => Object.values(S.cart).reduce((a, b) => a + b, 0);
-const cartTotal = () => S.catalogo.reduce((a, p) => a + (S.cart[p[F.p.id]] || 0) * price(p), 0);
+const cartCount = () => S.catalogo.reduce((a, p) => a + Math.floor((S.cart[p[F.p.id]] || 0) / boxSize(p)), 0);
+const cartTotal = () => S.catalogo.reduce((a, p) => a + Math.floor((S.cart[p[F.p.id]] || 0) / boxSize(p)) * priceBox(p), 0);
 
 function cardHtml(p, i) {
-  const id = p[F.p.id], q = S.cart[id] || 0, lim = limite(p);
+  const id = p[F.p.id], q = S.cart[id] || 0, lim = limite(p), bs = boxSize(p);
+  const caixas = Math.floor(q / bs);
   const off = lim <= 0 || p[F.p.status] === "A CONFIRMAR";
   return `<article class="tc-card ${off ? "tc-off" : ""}" style="--i:${i}">
     <div class="tc-img">${p[F.p.img] ? `<img src="${esc(p[F.p.img])}" alt="${esc(p[F.p.nome])}" loading="lazy">` : "✦"}</div>
     <h3>${esc(p[F.p.nome])}</h3>     <div class="sub">${esc(p[F.p.categoria] || "")}${p[F.p.caixa] ? ", caixa com " + p[F.p.caixa] + " un." : ""}</div>
      <div class="tc-price">${brl(priceBox(p))}<span style="font-size:13px;font-weight:400;color:var(--mute)"> a caixa</span></div>
     <div class="tc-lim">${p[F.p.status] === "A CONFIRMAR" ? "A confirmar" : lim <= 0 ? "Cota esgotada" : lim === Infinity ? "Sem limite de quantidade" : `Você ainda pode levar <b>${lim}</b>`}</div>
-    <div class="tc-step"><button data-act="sub" data-id="${esc(id)}" ${q <= 0 ? "disabled" : ""} aria-label="menos">−</button><b>${q}</b><button data-act="add" data-id="${esc(id)}" ${off || q >= lim ? "disabled" : ""} aria-label="mais">+</button></div></article>`;
+    <div class="tc-step"><button data-act="sub" data-id="${esc(id)}" ${caixas <= 0 ? "disabled" : ""} aria-label="menos">−</button><b>${caixas}</b><button data-act="add" data-id="${esc(id)}" ${off || q + bs > lim ? "disabled" : ""} aria-label="mais">+</button></div></article>`;
 }
 
 function viewLoja() {
   const n = cartCount();
-  const lines = S.catalogo.filter((p) => S.cart[p[F.p.id]]).map((p) => `<div class="tc-line"><span>${S.cart[p[F.p.id]]} x ${esc(p[F.p.nome])}</span><b>${brl(S.cart[p[F.p.id]] * price(p))}</b></div>`).join("");
+  const lines = S.catalogo.filter((p) => S.cart[p[F.p.id]]).map((p) => { const bs = boxSize(p), c = Math.floor(S.cart[p[F.p.id]] / bs); return `<div class="tc-line"><span>${c} x ${esc(p[F.p.nome])}</span><b>${brl(c * priceBox(p))}</b></div>`; }).join("");
   return `<div class="tc-shop"><div class="tc-hello"><h2>Olá, ${esc(S.cliente?.[F.c.nome] || S.cliente?.nome || "bem-vindo")}</h2>
     <button class="tc-btn ghost sm" data-act="cliLogout">Sair</button>
     <button class="tc-btn tc-cartbtn" data-act="openCart">Meu pedido${n ? `<i>${n}</i>` : ""}</button></div>
@@ -399,18 +401,19 @@ const A = {
   },
   add(el) {
     const id = el.dataset.id, p = byId(S.catalogo, F.p.id, id), q = S.cart[id] || 0;
-    if (q >= limite(p)) return toast("Você atingiu a cota deste produto");
-    S.cart[id] = q + 1; render();
+    const bs = boxSize(p);
+    if (q + bs > limite(p)) return toast("Você atingiu a cota deste produto");
+    S.cart[id] = q + bs; render();
     const b = $(".tc-cartbtn"); if (b) { b.classList.add("bump"); setTimeout(() => b.classList.remove("bump"), 400); }
   },
-  sub(el) { const id = el.dataset.id; S.cart[id] = Math.max(0, (S.cart[id] || 0) - 1); if (!S.cart[id]) delete S.cart[id]; render(); },
+  sub(el) { const id = el.dataset.id, p = byId(S.catalogo, F.p.id, id), bs = boxSize(p); S.cart[id] = Math.max(0, (S.cart[id] || 0) - bs); if (!S.cart[id]) delete S.cart[id]; render(); },
   openCart() { S.cartOpen = true; render(); },
   closeCart() { S.cartOpen = false; render(); },
   async finish() {
     const itens = Object.entries(S.cart).map(([id, quantidade]) => ({ produto_id: Number(id), quantidade }));
     const r = await fj(API.order, { method: "POST", body: { itens } });
     const c = S.cliente || {};
-    const linhas = S.catalogo.filter((p) => S.cart[p[F.p.id]]).map((p) => `${S.cart[p[F.p.id]]} x ${p[F.p.nome]}`).join("\n");
+    const linhas = S.catalogo.filter((p) => S.cart[p[F.p.id]]).map((p) => { const bs = boxSize(p), c = Math.floor(S.cart[p[F.p.id]] / bs); return `${c} x ${p[F.p.nome]}`; }).join("\n");
     const txt = `Olá! Pedido #${r.pedido_id}\nCliente: ${c.nome_fantasia || ""}\nCNPJ: ${maskCnpj(c.cnpj)}\n\n${linhas}\n\nTotal: ${brl(cartTotal())}`;
     const fone = digits(S.vendedor);
     S.done = { id: r.pedido_id, url: fone ? `https://wa.me/${fone}?text=${encodeURIComponent(txt)}` : "" };
