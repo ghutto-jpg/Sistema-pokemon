@@ -1,0 +1,21 @@
+{
+  "name": "pokemon-sistema",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "echo build",
+    "start": "vercel dev --listen 3000"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.117.3",
+    "bcryptjs": "^2.4.3",
+    "cookie": "^0.6.0",
+    "jose": "^5.9.3",
+    "nanoid": "^5.0.7",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "vercel": "^35.0.0"
+  }
+}

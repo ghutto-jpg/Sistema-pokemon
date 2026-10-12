@@ -1,0 +1,78 @@
+﻿-- Banco inicial (Supabase / Postgres). Rode no SQL Editor.
+
+
+alter table tipos_loja enable row level security;
+
+create table tipos_loja (
+  id bigint generated always as identity primary key,
+  nome text unique not null,
+  desconto_padrao numeric(5,2) not null default 0
+);
+
+alter table produtos enable row level security;
+
+create table produtos (
+  id bigint generated always as identity primary key,
+  codigo text unique not null,
+  nome text not null,
+  categoria text not null default 'Geral',
+  caixa_master int not null default 1,
+  preco_caixa_master numeric(12,2) not null default 0,
+  pdv_sugerido numeric(12,2) not null default 0,
+  status text not null default 'DISPONÃVEL' check (status in ('DISPONÃVEL','A CONFIRMAR','INDISPONÃVEL')),
+  imagem text,                      -- URL do arquivo no Supabase Storage (bucket "produtos")
+  ativo boolean not null default true,
+  criado_em timestamptz default now()
+);
+
+alter table clientes enable row level security;
+
+create table clientes (
+  id bigint generated always as identity primary key,
+  cnpj text unique not null,
+  nome_fantasia text not null,
+  tipo_loja_id bigint references tipos_loja(id),
+  desconto numeric(5,2) not null default 0,
+
+  ativo boolean not null default true,
+  criado_em timestamptz default now()
+);
+
+alter table cotas enable row level security;
+
+create table cotas (
+  cliente_id bigint references clientes(id) on delete cascade,
+  produto_id bigint references produtos(id) on delete cascade,
+  quantidade int not null check (quantidade >= 0),
+  primary key (cliente_id, produto_id)
+);
+
+alter table pedidos enable row level security;
+
+create table pedido_itens (
+  pedido_id bigint references pedidos(id) on delete cascade,
+  produto_id bigint references produtos(id),
+  quantidade int not null check (quantidade > 0),
+  preco_unitario numeric(12,2) not null,
+  primary key (pedido_id, produto_id)
+);
+-- Ative RLS em todas as tabelas e acesse sÃ³ pelo backend (service key). Nunca exponha a service key no JS.
+insert into tipos_loja (nome, desconto_padrao) values
+ ('E-commerce',10),('Varejo',15),('Liga',20),('Clube',23),('Hobby Store',20),('Atacado',28);
+
+alter table pedido_itens enable row level security;
+
+create table configuracoes (
+  chave text primary key,
+  valor text not null
+);
+
+alter table configuracoes enable row level security;
+
+-- Ative RLS em todas as tabelas e acesse só pelo backend (service key). Nunca exponha a service key no JS.
+insert into tipos_loja (nome, desconto_padrao) values
+ ('E-commerce',10),('Varejo',15),('Liga',20),('Clube',23),('Hobby Store',20),('Atacado',28);
+
+insert into configuracoes (chave, valor) values
+ ('whatsapp_vendedor','');
+

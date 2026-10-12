@@ -1,0 +1,1 @@
+curl -v -X GET https://pokemon-sistema.vercel.app/api/admin/products -H "Cookie: admin_session=eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiYWRtaW4iLCJzdWIiOiJhZG1pbiIsImlhdCI6MTc5MTc2NDM5OCwiZXhwIjoxNzkxNzkzMTk4fQ.7r6IXaujlVME50uaUGjVMDbMsrhp_9oOIKwoWa8lQrk" 2>&1

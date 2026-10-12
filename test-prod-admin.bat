@@ -1,0 +1,1 @@
+curl -v -X POST https://pokemon-sistema.vercel.app/api/admin/auth -H "Content-Type: application/json" -d "{\"action\":\"login\",\"user\":\"0\",\"pass\":\"0\"}" 2>&1

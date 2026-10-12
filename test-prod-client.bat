@@ -1,0 +1,1 @@
+curl -v -X POST https://pokemon-sistema.vercel.app/api/client/login -H "Content-Type: application/json" -d "{\"cnpj\":\"00000000000000\"}" 2>&1

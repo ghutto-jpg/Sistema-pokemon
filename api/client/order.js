@@ -1,0 +1,14 @@
+﻿import { supabaseAdmin } from '../../lib/supabase-admin.js';
+import { requireClient } from '../../lib/auth-admin.js';
+
+export default async function handler(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ ok: false });
+  const client = await requireClient(req); if (!client) return res.status(401).json({ ok: false });
+  try {
+    const body = req.body || {}; const itens = Array.isArray(body.itens) ? body.itens.map(i=>({ produto_id: Number(i.produto_id), quantidade: Number(i.quantidade) })).filter(i=>i.produto_id&&i.quantidade>0) : [];
+    if (!itens.length) return res.status(400).json({ ok: false, error: 'Itens vazios' });
+    const { data, error } = await supabaseAdmin.rpc('criar_pedido', { p_cliente_id: Number(client.cliente_id), p_itens: itens });
+    if (error) return res.status(400).json({ ok: false, error: error.message });
+    return res.json({ ok: true, pedido_id: data });
+  } catch (e) { return res.status(400).json({ ok: false, error: e.message }); }
+}

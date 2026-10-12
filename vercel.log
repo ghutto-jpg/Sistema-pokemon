@@ -1,0 +1,38 @@
+Vercel CLI 63.1.2 (Node.js 24.11.1)
+Retrieving project…
+> Creating initial build
+Running "npm run build"
+
+> pokemon-sistema@1.0.0 build
+> echo build
+
+build
+> Success! Build completed
+> Local resources:
+  Vercel Queues   http://127.0.0.1:4782
+  Vercel Schedules http://127.0.0.1:4784
+  Runtime Cache   http://127.0.0.1:4783/v1/suspense-cache/
+> Ready! Available at http://localhost:3000
+Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file src\win\async.c, line 76
+Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file src\win\async.c, line 76
+Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file src\win\async.c, line 76
+Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file src\win\async.c, line 76
+Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file src\win\async.c, line 76
+Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file src\win\async.c, line 76
+Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file src\win\async.c, line 76
+Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file src\win\async.c, line 76
+Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file src\win\async.c, line 76
+Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file src\win\async.c, line 76
+Error: Missing SESSION_SECRET
+Error: An unexpected error occurred!
+Error: Command failed: taskkill /pid 25380 /T /F
+ERRO: o processo "25380" não foi encontrado.
+
+    at genericNodeError (node:internal/errors:985:15)
+    at wrappedFn (node:internal/errors:539:14)
+    at ChildProcess.exithandler (node:child_process:417:12)
+    at ChildProcess.emit (node:events:508:28)
+    at maybeClose (node:internal/child_process:1101:16)
+    at ChildProcess._handle.onexit (node:internal/child_process:305:5)
+
+C:\Users\Gustavo\Desktop\pokemon-sistema>
