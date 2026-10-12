@@ -301,7 +301,7 @@ function cardHtml(p, i) {
   const off = lim <= 0 || p[F.p.status] === "A CONFIRMAR";
   return `<article class="tc-card ${off ? "tc-off" : ""}" style="--i:${i}">
     <div class="tc-img">${p[F.p.img] ? `<img src="${esc(p[F.p.img])}" alt="${esc(p[F.p.nome])}" loading="lazy">` : "✦"}</div>
-    <h3>${esc(p[F.p.nome])}</h3><div class="sub">${esc(p[F.p.categoria] || "")}${p[F.p.caixa] ? ", caixa com " + p[F.p.caixa + " un." : ""}</div>
+    <h3>${esc(p[F.p.nome])}</h3>     <div class="sub">${esc(p[F.p.categoria] || "")}${p[F.p.caixa] ? ", caixa com " + p[F.p.caixa] + " un." : ""}</div>
     <div class="tc-price">${brl(price(p))}<span style="font-size:13px;font-weight:400;color:var(--mute)"> cada</span></div>
     <div class="tc-lim">${p[F.p.status] === "A CONFIRMAR" ? "A confirmar" : lim <= 0 ? "Cota esgotada" : lim === Infinity ? "Sem limite de quantidade" : `Você ainda pode levar <b>${lim}</b>`}</div>
     <div class="tc-step"><button data-act="sub" data-id="${esc(id)}" ${q <= 0 ? "disabled" : ""} aria-label="menos">−</button><b>${q}</b><button data-act="add" data-id="${esc(id)}" ${off || q >= lim ? "disabled" : ""} aria-label="mais">+</button></div></article>`;
