@@ -291,6 +291,7 @@ function viewClienteLogin() {
 }
 
 const price = (p) => num(p.preco_unitario);
+const priceBox = (p) => num(p.preco_caixa_com_desconto);
 // restante = cota menos o que o cliente já pediu; sem cota = sem limite
 const limite = (p) => (p.restante != null ? num(p.restante) : p.cota != null ? num(p.cota) : Infinity);
 const cartCount = () => Object.values(S.cart).reduce((a, b) => a + b, 0);
@@ -302,7 +303,7 @@ function cardHtml(p, i) {
   return `<article class="tc-card ${off ? "tc-off" : ""}" style="--i:${i}">
     <div class="tc-img">${p[F.p.img] ? `<img src="${esc(p[F.p.img])}" alt="${esc(p[F.p.nome])}" loading="lazy">` : "✦"}</div>
     <h3>${esc(p[F.p.nome])}</h3>     <div class="sub">${esc(p[F.p.categoria] || "")}${p[F.p.caixa] ? ", caixa com " + p[F.p.caixa] + " un." : ""}</div>
-    <div class="tc-price">${brl(price(p))}<span style="font-size:13px;font-weight:400;color:var(--mute)"> cada</span></div>
+     <div class="tc-price">${brl(priceBox(p))}<span style="font-size:13px;font-weight:400;color:var(--mute)"> a caixa</span></div>
     <div class="tc-lim">${p[F.p.status] === "A CONFIRMAR" ? "A confirmar" : lim <= 0 ? "Cota esgotada" : lim === Infinity ? "Sem limite de quantidade" : `Você ainda pode levar <b>${lim}</b>`}</div>
     <div class="tc-step"><button data-act="sub" data-id="${esc(id)}" ${q <= 0 ? "disabled" : ""} aria-label="menos">−</button><b>${q}</b><button data-act="add" data-id="${esc(id)}" ${off || q >= lim ? "disabled" : ""} aria-label="mais">+</button></div></article>`;
 }
