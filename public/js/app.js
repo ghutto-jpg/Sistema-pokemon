@@ -1,5 +1,4 @@
-﻿// Force rebuild 4
-import { toast, brl, esc } from "./utils.js";
+﻿import { toast, brl, esc } from "./utils.js";
 
 /* =====================================================================
    1. AJUSTES. Se alguma coisa vier vazia ou errada, mexa só aqui.
