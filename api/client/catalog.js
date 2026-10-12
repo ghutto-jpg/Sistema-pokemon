@@ -11,7 +11,7 @@ export default async function handler(req, res) {
     const clienteId = sessao.cliente_id;
 
     const { data: cli } = await supabaseAdmin
-      .from('clientes').select('id, cnpj, nome_fantasia, desconto, ativo').eq('id', clienteId).maybeSingle();
+      .from('clientes').select('id, cnpj, nome_fantasia, desconto, ativo, prazo_pagamento').eq('id', clienteId).maybeSingle();
     if (!cli || !cli.ativo) return res.status(401).json({ ok: false, error: 'Cliente não autorizado' });
 
     const [prod, cot, ped, cfg] = await Promise.all([
@@ -44,7 +44,7 @@ export default async function handler(req, res) {
     const whatsapp = (cfg.data || []).find((c) => c.chave === 'whatsapp_vendedor')?.valor || '';
     return res.json({
       ok: true,
-      cliente: { id: cli.id, cnpj: cli.cnpj, nome_fantasia: cli.nome_fantasia, desconto: dc },
+      cliente: { id: cli.id, cnpj: cli.cnpj, nome_fantasia: cli.nome_fantasia, desconto: dc, prazo_pagamento: cli.prazo_pagamento },
       produtos,
       whatsapp_vendedor: whatsapp,
     });
