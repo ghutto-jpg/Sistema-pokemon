@@ -33,6 +33,23 @@ const F = {
 const $ = (s, r = document) => r.querySelector(s);
 const num = (v) => Number(String(v).replace(",", ".")) || 0;
 const digits = (v) => String(v || "").replace(/\D/g, "");
+
+// Converte valor para número, tratando R$ e vírgula
+function toFloat(v) {
+  if (v === null || v === undefined || v === "" || v === "-") return 0;
+  if (typeof v === "number") return v;
+  let s = String(v).replace("R$", "").trim();
+  if (s.includes(",")) s = s.replace(/\./g, "").replace(",", ".");
+  return parseFloat(s) || 0;
+}
+
+// Converte "24 Dúzias" → 288, "1 dúzia" → 12, "03 Dúzias" → 36
+function parseCaixaMaster(v) {
+  if (!v) return 1;
+  const s = String(v).toLowerCase().replace(/dúzias?/g, "").replace(/[^0-9]/g, "").trim();
+  const n = parseInt(s) || 1;
+  return String(v).toLowerCase().includes("dúzia") ? n * 12 : n;
+}
 const maskCnpj = (v) => digits(v).slice(0, 14).replace(/^(\d{2})(\d)/, "$1.$2").replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3").replace(/\.(\d{3})(\d)/, ".$1/$2").replace(/(\d{4})(\d)/, "$1-$2");
 const list = (d) => (Array.isArray(d) ? d : (d && (d.items || d.data || d.rows || d.produtos || d.clientes || d.products || d.clients || d.cotas || d.quotas)) || []);
 
@@ -441,7 +458,25 @@ document.addEventListener("change", async (e) => {
     if (t.dataset.import !== undefined && t.files[0]) {
       if (!window.XLSX) await new Promise((ok, no) => { const s = document.createElement("script"); s.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"; s.onload = ok; s.onerror = () => no(new Error("Não consegui carregar o leitor de planilhas")); document.head.appendChild(s); });
       const wb = XLSX.read(await t.files[0].arrayBuffer());
-      S.imp = { nome: t.files[0].name, rows: XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: "" }) };
+      let rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: "" });
+      // Detecta planilha COPAG (título na primeira célula) e converte colunas __EMPTY
+      const firstKey = Object.keys(rows[0] || {})[0];
+      if (firstKey && String(rows[0][firstKey]).includes('COPAG')) {
+        rows = rows.slice(4).map(r => {
+          const keys = Object.keys(r);
+          return {
+            codigo: String(r[keys[0]] || '').trim(),
+            nome: String(r[keys[1]] || '').trim(),
+            categoria: 'Geral',
+            caixa_master: parseCaixaMaster(String(r[keys[2]] || '')),
+            preco_caixa_master: toFloat(r[keys[3]]),
+            pdv_sugerido: toFloat(r[keys[12]]),
+            status: 'DISPONÍVEL',
+            ativo: true
+          };
+        }).filter(r => r.codigo);
+      }
+      S.imp = { nome: t.files[0].name, rows };
       render();
     }
   } catch (err) { toast(err.message || "Algo deu errado"); }
