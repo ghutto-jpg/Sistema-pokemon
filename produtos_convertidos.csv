@@ -1,0 +1,8 @@
+codigo,nome,categoria,caixa_master,preco_caixa_master,pdv_sugerido,status,ativo
+91016,"Baralho 139 AS",Geral,288,190,133,DISPONÍVEL,true
+91014,"Baralho 139 AS",Geral,36,190,133,DISPONÍVEL,true
+91044,"Baralho 139 AS (Caixa 1/2 Dúzia)",Geral,144,190,133,DISPONÍVEL,true
+91026,"Baralho 139 AS Naipe Grande",Geral,288,190,133,DISPONÍVEL,true
+91024,"Baralho 139 AS Naipe Grande",Geral,36,190,133,DISPONÍVEL,true
+36565,"Baralho 139 AS Naipe Convencional - Paper Blister",Geral,12,198.56,139,DISPONÍVEL,true
+36567,"Baralho 139 AS Naipe Grande - Paper Blister",Geral,12,198.56,139,DISPONÍVEL,true
