@@ -24,7 +24,7 @@ const TIPOS = [
 const STATUS = ["DISPONÍVEL", "A CONFIRMAR", "INDISPONÍVEL"];
 const F = {
   p: { id: "id", codigo: "codigo", nome: "nome", categoria: "categoria", caixa: "caixa_master", preco: "preco_caixa_master", pdv: "pdv_sugerido", status: "status", ativo: "ativo", img: "imagem" },
-  c: { id: "id", cnpj: "cnpj", nome: "nome_fantasia", tipo: "tipo_loja_id", desc: "desconto", ativo: "ativo" },
+  c: { id: "id", cnpj: "cnpj", nome: "nome_fantasia", tipo: "tipo_loja_id", desc: "desconto", prazo: "prazo_pagamento", ativo: "ativo" },
 };
 
 /* =====================================================================
@@ -143,12 +143,10 @@ body{margin:0;background:radial-gradient(1200px 600px at 80% -10%,#2f2a79 0%,tra
 .tc-cartbtn{position:relative}.tc-cartbtn.bump{animation:bump .4s}
 @keyframes bump{40%{transform:scale(1.18) rotate(-4deg)}}
 .tc-cartbtn i{position:absolute;top:-8px;right:-8px;background:var(--hot);color:#fff;font-style:normal;font-size:12px;min-width:22px;height:22px;border-radius:99px;display:grid;place-items:center;padding:0 5px}
-.tc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:20px;perspective:900px}
-.tc-card{--rx:0deg;--ry:0deg;--mx:50%;--my:50%;position:relative;background:var(--panel);border:3px solid var(--gold);border-radius:18px;padding:12px;transform:rotateX(var(--rx)) rotateY(var(--ry));transition:transform .15s ease-out,box-shadow .2s;transform-style:preserve-3d;overflow:hidden;animation:deal .5s backwards;animation-delay:calc(var(--i)*40ms)}
+.tc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:20px}
+.tc-card{position:relative;background:var(--panel);border:3px solid var(--gold);border-radius:18px;padding:12px;transition:box-shadow .2s,transform .1s;overflow:hidden;animation:deal .5s backwards;animation-delay:calc(var(--i)*40ms)}
 @keyframes deal{from{opacity:0;transform:translateY(30px) rotate(3deg)}}
-.tc-card:hover{box-shadow:0 18px 40px #0008}
-.tc-card::after{content:"";position:absolute;inset:0;border-radius:15px;pointer-events:none;opacity:0;transition:opacity .2s;mix-blend-mode:color-dodge;background:radial-gradient(circle at var(--mx) var(--my),#fff8 0,transparent 35%),linear-gradient(115deg,#ff5c8a55,#f5c84255,#47d1ff55,#b46bff55)}
-.tc-card:hover::after{opacity:1}
+.tc-card:hover{box-shadow:0 12px 30px #0008;transform:translateY(-2px)}
 .tc-img{aspect-ratio:1/1;border-radius:10px;background:#15133a;display:grid;place-items:center;overflow:hidden;font-size:40px;color:var(--line)}
 .tc-img img{width:100%;height:100%;object-fit:cover}
 .tc-card h3{font-size:17px;margin:10px 0 2px}.tc-card .sub{color:var(--mute);font-size:13px}
@@ -294,6 +292,7 @@ function modalHtml() {
     <label class="tc-lab">Nome fantasia</label><input class="tc-in" name="nome" value="${esc(d[c.nome] ?? "")}">
     <div class="tc-2"><div><label class="tc-lab">Tipo de loja</label><select class="tc-sel" name="tipo"><option value="">Sem tipo</option>${TIPOS.map((t) => `<option value="${t.id}" ${Number(d[c.tipo]) === t.id ? "selected" : ""}>${t.nome}</option>`).join("")}</select></div>
     <div><label class="tc-lab">Desconto (%)</label><input class="tc-in" name="desc" type="number" min="0" max="100" value="${esc(d[c.desc] ?? 0)}"></div></div>
+    <label class="tc-lab">Prazo de pagamento</label><input class="tc-in" name="prazo" value="${esc(d[c.prazo] ?? "")}" placeholder="Ex: 30 dias, à vista, 15/30/45">
     <label class="tc-lab"><input type="checkbox" name="ativo" ${d[c.ativo] === false ? "" : "checked"}> Cliente ativo</label>
     <div class="tc-foot"><button class="tc-btn ghost" data-act="closeM">Cancelar</button><button class="tc-btn" data-act="saveC">Salvar cliente</button></div>`;
   }
@@ -375,8 +374,14 @@ const A = {
   editP(el) { S.modal = { type: "p", data: byId(S.produtos, F.p.id, el.dataset.id) }; render(); },
   confirmDelP(el) { const p = byId(S.produtos, F.p.id, el.dataset.id); S.modal = { type: "delP", data: p }; render(); },
   async delP(el) {
-    await fj(API.products, { method: "DELETE", body: { [F.p.id]: el.dataset.id } });
-    S.modal = null; await loadAdmin(); toast("Produto excluído");
+    console.log("delP called with:", el.dataset.id);
+    try {
+      await fj(API.products, { method: "DELETE", body: { [F.p.id]: el.dataset.id } });
+      S.modal = null; await loadAdmin(); toast("Produto excluído");
+    } catch (err) {
+      console.error("Delete failed:", err);
+      toast(err.message || "Erro ao excluir");
+    }
   },
   newC() { S.modal = { type: "c", data: {} }; render(); },
   editC(el) { S.modal = { type: "c", data: byId(S.clientes, F.c.id, el.dataset.id) }; render(); },
@@ -395,7 +400,7 @@ const A = {
   async saveC() {
     const v = readModal(), d = S.modal.data || {}, cnpj = digits(v.cnpj);
     if (cnpj.length !== 14) return toast("O CNPJ precisa ter 14 números");
-    const body = { [F.c.cnpj]: cnpj, [F.c.nome]: v.nome.trim(), [F.c.tipo]: v.tipo ? Number(v.tipo) : null, [F.c.desc]: num(v.desc), [F.c.ativo]: v.ativo };
+    const body = { [F.c.cnpj]: cnpj, [F.c.nome]: v.nome.trim(), [F.c.tipo]: v.tipo ? Number(v.tipo) : null, [F.c.desc]: num(v.desc), [F.c.prazo]: v.prazo?.trim() || null, [F.c.ativo]: v.ativo };
     if (d[F.c.id]) body[F.c.id] = d[F.c.id];
     await fj(API.clients, { method: d[F.c.id] ? UPDATE_METHOD : "POST", body });
     S.modal = null; await loadAdmin(); toast("Cliente salvo");
@@ -447,7 +452,7 @@ const A = {
       return `* ${p[F.p.codigo]} - ${p[F.p.nome]}\nCaixas Master: ${caixas}\nValor Caixa: ${brl(valorCaixa)}\nSubtotal: ${brl(subtotal)}`;
     }).join("\n\n");
     
-    const txt = `NOVO PEDIDO\n\nCliente: ${c.nome_fantasia || ""}\nCNPJ: ${maskCnpj(c.cnpj)}\n\n${linhas}\n\nTOTAL: ${brl(cartTotal())}\n\nPedido sujeito à confirmação de disponibilidade`;
+    const txt = `NOVO PEDIDO\n\nCliente: ${c.nome_fantasia || ""}\nCNPJ: ${maskCnpj(c.cnpj)}${c.prazo_pagamento ? `\nPrazo: ${c.prazo_pagamento}` : ""}\n\n${linhas}\n\nTOTAL: ${brl(cartTotal())}\n\nPedido sujeito à confirmação de disponibilidade`;
     
     const fone = digits(S.vendedor);
     S.done = { id: r.pedido_id, url: fone ? `https://wa.me/${fone}?text=${encodeURIComponent(txt)}` : "" };
@@ -510,19 +515,6 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") { if (S.modal) A.closeM(); else if (S.cartOpen) A.closeCart(); }
   if (e.key === "Enter" && (e.target.id === "u" || e.target.id === "p")) A.login();
   if (e.key === "Enter" && e.target.id === "cnpj") A.cliLogin();
-});
-
-/* efeito de carta holográfica: a luz segue o mouse */
-document.addEventListener("mousemove", (e) => {
-  const c = e.target.closest && e.target.closest(".tc-card");
-  if (!c || matchMedia("(prefers-reduced-motion:reduce)").matches) return;
-  const r = c.getBoundingClientRect(), x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
-  c.style.setProperty("--mx", x * 100 + "%"); c.style.setProperty("--my", y * 100 + "%");
-  c.style.setProperty("--ry", (x - 0.5) * 12 + "deg"); c.style.setProperty("--rx", (0.5 - y) * 12 + "deg");
-});
-document.addEventListener("mouseout", (e) => {
-  const c = e.target.closest && e.target.closest(".tc-card");
-  if (c && !c.contains(e.relatedTarget)) { c.style.setProperty("--rx", "0deg"); c.style.setProperty("--ry", "0deg"); }
 });
 
 /* =====================================================================
