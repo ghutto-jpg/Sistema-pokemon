@@ -1,4 +1,5 @@
 {
+  "buildCommand": "echo build",
   "crons": [
     {
       "path": "/api/ping",
