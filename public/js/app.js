@@ -292,7 +292,7 @@ function modalHtml() {
     <label class="tc-lab">Nome fantasia</label><input class="tc-in" name="nome" value="${esc(d[c.nome] ?? "")}">
     <div class="tc-2"><div><label class="tc-lab">Tipo de loja</label><select class="tc-sel" name="tipo"><option value="">Sem tipo</option>${TIPOS.map((t) => `<option value="${t.id}" ${Number(d[c.tipo]) === t.id ? "selected" : ""}>${t.nome}</option>`).join("")}</select></div>
     <div><label class="tc-lab">Desconto (%)</label><input class="tc-in" name="desc" type="number" min="0" max="100" value="${esc(d[c.desc] ?? 0)}"></div></div>
-    <label class="tc-lab">Prazo de pagamento</label><input class="tc-in" name="prazo" value="${esc(d[c.prazo] ?? "")}" placeholder="Ex: 30 dias, à vista, 15/30/45">
+    <label class="tc-lab">Prazo de pagamento</label><input class="tc-in" name="prazo_pagamento" value="${esc(d[c.prazo] ?? "")}" placeholder="Ex: 30 dias, à vista, 15/30/45">
     <label class="tc-lab"><input type="checkbox" name="ativo" ${d[c.ativo] === false ? "" : "checked"}> Cliente ativo</label>
     <div class="tc-foot"><button class="tc-btn ghost" data-act="closeM">Cancelar</button><button class="tc-btn" data-act="saveC">Salvar cliente</button></div>`;
   }
