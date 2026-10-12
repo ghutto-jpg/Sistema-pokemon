@@ -400,7 +400,7 @@ const A = {
   async saveC() {
     const v = readModal(), d = S.modal.data || {}, cnpj = digits(v.cnpj);
     if (cnpj.length !== 14) return toast("O CNPJ precisa ter 14 números");
-    const body = { [F.c.cnpj]: cnpj, [F.c.nome]: v.nome.trim(), [F.c.tipo]: v.tipo ? Number(v.tipo) : null, [F.c.desc]: num(v.desc), [F.c.prazo]: v.prazo?.trim() || null, [F.c.ativo]: v.ativo };
+    const body = { [F.c.cnpj]: cnpj, [F.c.nome]: v.nome.trim(), [F.c.tipo]: v.tipo ? Number(v.tipo) : null, [F.c.desc]: num(v.desc), [F.c.prazo]: v.prazo_pagamento?.trim() || null, [F.c.ativo]: v.ativo };
     if (d[F.c.id]) body[F.c.id] = d[F.c.id];
     await fj(API.clients, { method: d[F.c.id] ? UPDATE_METHOD : "POST", body });
     S.modal = null; await loadAdmin(); toast("Cliente salvo");
