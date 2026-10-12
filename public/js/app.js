@@ -460,9 +460,9 @@ document.addEventListener("change", async (e) => {
       if (!window.XLSX) await new Promise((ok, no) => { const s = document.createElement("script"); s.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"; s.onload = ok; s.onerror = () => no(new Error("Não consegui carregar o leitor de planilhas")); document.head.appendChild(s); });
       const wb = XLSX.read(await t.files[0].arrayBuffer());
       let rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: "" });
-      // Detecta planilha COPAG (título na primeira célula) e converte colunas __EMPTY
+      // Detecta planilha COPAG (título na primeira coluna) e converte colunas __EMPTY
       const firstKey = Object.keys(rows[0] || {})[0];
-      if (firstKey && String(rows[0][firstKey]).includes('COPAG')) {
+      if (firstKey && firstKey.includes('COPAG')) {
         rows = rows.slice(4).map(r => {
           const keys = Object.keys(r);
           return {
