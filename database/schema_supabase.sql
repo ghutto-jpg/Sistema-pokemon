@@ -29,6 +29,7 @@ create table if not exists clientes (
   nome_fantasia text not null,
   tipo_loja_id bigint references tipos_loja(id),
   desconto numeric(5,2) not null default 0,
+  prazo_pagamento text,
   ativo boolean not null default true,
   criado_em timestamptz default now()
 );

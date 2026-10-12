@@ -18,13 +18,14 @@ on conflict (nome) do nothing;
 -- Desconto: 10%
 -- Tipo: E-commerce (id=1)
 -- Ativo: true
-insert into clientes (cnpj, nome_fantasia, tipo_loja_id, desconto, ativo)
-values ('00000000000000', 'Cliente Teste', 1, 10, true)
+insert into clientes (cnpj, nome_fantasia, tipo_loja_id, desconto, ativo, prazo_pagamento)
+values ('00000000000000', 'Cliente Teste', 1, 10, true, '30 dias')
 on conflict (cnpj) do update set
   nome_fantasia = excluded.nome_fantasia,
   tipo_loja_id = excluded.tipo_loja_id,
   desconto = excluded.desconto,
-  ativo = excluded.ativo;
+  ativo = excluded.ativo,
+  prazo_pagamento = excluded.prazo_pagamento;
 
 -- 4) Produtos de teste
 -- Produto 1: com cota 20

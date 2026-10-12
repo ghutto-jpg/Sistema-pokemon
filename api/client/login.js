@@ -42,7 +42,7 @@ export default async function handler(req, res) {
 
     return res.json({
       ok: true,
-      cliente: { id: data.id, cnpj: data.cnpj, nome_fantasia: data.nome_fantasia, desconto: data.desconto },
+      cliente: { id: data.id, cnpj: data.cnpj, nome_fantasia: data.nome_fantasia, desconto: data.desconto, prazo_pagamento: data.prazo_pagamento },
     });
   } catch (e) {
     return res.status(500).json({ ok: false, error: e.message });
