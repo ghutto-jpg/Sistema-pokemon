@@ -45,7 +45,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ ok: false, error: 'Nenhum produto encontrado na planilha' });
     }
 
-    let criados = 0, atualizados = 0, erros = 0;
+    let criados = 0, atualizados = 0, erros = 0, ignoradosCount = 0;
     const errosList = [];
 
     for (const prob of problems) {
@@ -68,15 +68,10 @@ export default async function handler(req, res) {
     }
 
     const novos = [];
-    const paraAtualizar = [];
+    const ignorados = [];
     for (const [codigo, { i, dados }] of porCodigo) {
       if (existentes.has(codigo)) {
-        const updateData = { ...dados };
-        delete updateData.codigo;
-        delete updateData.ativo;
-        if (Object.keys(updateData).length > 0) {
-          paraAtualizar.push({ i, id: existentes.get(codigo), dados: updateData });
-        }
+        ignorados.push({ i, codigo, motivo: 'já existe no banco' });
       } else {
         novos.push({
           i,
@@ -100,15 +95,9 @@ export default async function handler(req, res) {
       else criados += parte.length;
     }
 
-    for (const parte of pedacos(paraAtualizar, 10)) {
-      await Promise.all(parte.map(async (p) => {
-        const { error } = await supabaseAdmin.from('produtos').update(p.dados).eq('id', p.id);
-        if (error) { erros++; errosList.push({ i: p.i, motivo: error.message }); }
-        else atualizados++;
-      }));
-    }
+    ignoradosCount = ignorados.length;
 
-    return res.json({ ok: true, criados, atualizados, erros, errosList, categorias: categoriesCount });
+    return res.json({ ok: true, criados, atualizados, erros, ignorados: ignoradosCount, errosList, categorias: categoriesCount });
   } catch (e) {
     return res.status(500).json({ ok: false, error: e.message });
   }
