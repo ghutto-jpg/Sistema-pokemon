@@ -183,7 +183,7 @@ async function loadCotas() {
   S.cotas = {};
   if (!S.cotaCliente) return render();
   const d = list(await fj(API.quotas + "?cliente_id=" + encodeURIComponent(S.cotaCliente)).catch(() => []));
-  d.forEach((x) => { S.cotas[x.produto_id] = x.quantidade; });
+  d.forEach((x) => { S.cotas[x.produto_id] = x; });
   render();
 }
 async function loadCatalog() {
@@ -221,7 +221,7 @@ function tProdutos() {
     (rows.length ? rows.map((p) => `<div class="tc-row">
       ${p[F.p.img] ? `<img class="tc-th" src="${esc(p[F.p.img])}" alt="">` : `<div class="tc-th">✦</div>`}
       <div><b>${esc(p[F.p.nome])}</b><small>${esc(p[F.p.codigo])} </small><span class="tc-tag">${esc(p[F.p.categoria] || "sem categoria")}</span><span class="tc-tag">${esc(p[F.p.status] || "DISPONÍVEL")}</span><small>${brl(num(p[F.p.preco]))}</small></div>
-      <div class="tc-act">${sw(p[F.p.ativo], "togP", p[F.p.id])}<button class="tc-btn ghost sm" data-act="editP" data-id="${esc(p[F.p.id])}">Editar</button></div></div>`).join("")
+      <div class="tc-act">${sw(p[F.p.ativo], "togP", p[F.p.id])}<button class="tc-btn ghost sm" data-act="editP" data-id="${esc(p[F.p.id])}">Editar</button><button class="tc-btn danger sm" data-act="confirmDelP" data-id="${esc(p[F.p.id])}">Excluir</button></div></div>`).join("")
       : `<div class="tc-empty">Nenhum produto ainda. Clique em "Novo produto" ou use a aba Importar.</div>`);
 }
 
@@ -238,12 +238,12 @@ function tCotas() {
   const opts = `<option value="">Escolha um cliente</option>` + S.clientes.map((c) => `<option value="${esc(c[F.c.id])}" ${String(c[F.c.id]) === String(S.cotaCliente) ? "selected" : ""}>${esc(c[F.c.nome])}</option>`).join("");
   const lista = S.cotaCliente ? S.produtos.map((p) => {
     const pid = p[F.p.id];
-    const cota = S.cotas[pid];
-    const usado = cota != null ? (cota - Math.max(0, cota - (p.restante ?? cota))) : 0;
-    return `<div class="tc-quota"><div><b>${esc(p[F.p.nome])}</b><small> ${esc(p[F.p.codigo])}</small>${cota != null ? ` <span style="color:var(--mute);font-size:12px">usado: ${usado}/${cota} (restam: ${p.restante ?? cota})</span>` : ''}</div>
-      <input class="tc-in" type="number" min="0" placeholder="sem limite" data-quota="${esc(pid)}" value="${esc(cota ?? "")}">
+    const c = S.cotas[pid];
+    const tem = c && c.quantidade != null;
+    return `<div class="tc-quota"><div><b>${esc(p[F.p.nome])}</b><small> ${esc(p[F.p.codigo])}</small>${tem ? ` <span style="color:var(--mute);font-size:12px">usado: ${c.usado}/${c.quantidade} (restam: ${c.restante})</span>` : ''}</div>
+      <input class="tc-in" type="number" min="0" placeholder="sem limite" data-quota="${esc(pid)}" value="${tem ? esc(c.restante) : ""}" title="O número é o contador: quanto o cliente ainda pode comprar">
     </div>`;
-  }).join("") : `<div class="tc-empty">Escolha um cliente para definir a cota total por produto. Campo vazio = sem limite, 0 = bloqueado. Para "resetar", basta alterar o valor.</div>`;
+  }).join("") : `<div class="tc-empty">Escolha um cliente para definir a cota por produto. O campo é o contador do que o cliente AINDA pode comprar (vitalício, sem prazo): campo vazio = sem limite, 0 = bloqueado. Ao comprar, o contador diminui; para dar mais cota, some o valor e salve.</div>`;
   return `<div class="tc-bar"><select class="tc-sel" style="max-width:340px" data-bind="cotaCliente">${opts}</select></div>${lista}`;
 }
 
@@ -282,6 +282,11 @@ function modalHtml() {
     <label class="tc-lab">Imagem (sugerido 600 x 600 px)</label><input class="tc-in" type="file" name="file" accept="image/*">
     <label class="tc-lab"><input type="checkbox" name="ativo" ${d[p.ativo] === false ? "" : "checked"}> Produto ativo</label>
     <div class="tc-foot"><button class="tc-btn ghost" data-act="closeM">Cancelar</button><button class="tc-btn" data-act="saveP">Salvar produto</button></div>`;
+  } else if (m.type === "delP") {
+    inner = `<h3>Excluir produto</h3>
+    <p>Tem certeza que deseja excluir <b>${esc(d[F.p.nome])}</b> (${esc(d[F.p.codigo])})?</p>
+    <p style="color:var(--mute);font-size:13px">Esta ação não pode ser desfeita.</p>
+    <div class="tc-foot"><button class="tc-btn ghost" data-act="closeM">Cancelar</button><button class="tc-btn danger" data-act="delP" data-id="${esc(d[F.p.id])}">Sim, excluir</button></div>`;
   } else {
     const c = F.c;
     inner = `<h3>${d[c.id] ? "Editar cliente" : "Novo cliente"}</h3>
@@ -368,6 +373,11 @@ const A = {
   tab(el) { S.tab = el.dataset.id; S.q = ""; render(); },
   newP() { S.modal = { type: "p", data: {} }; render(); },
   editP(el) { S.modal = { type: "p", data: byId(S.produtos, F.p.id, el.dataset.id) }; render(); },
+  confirmDelP(el) { const p = byId(S.produtos, F.p.id, el.dataset.id); S.modal = { type: "delP", data: p }; render(); },
+  async delP(el) {
+    await fj(API.products, { method: "DELETE", body: { [F.p.id]: el.dataset.id } });
+    S.modal = null; await loadAdmin(); toast("Produto excluído");
+  },
   newC() { S.modal = { type: "c", data: {} }; render(); },
   editC(el) { S.modal = { type: "c", data: byId(S.clientes, F.c.id, el.dataset.id) }; render(); },
   closeM() { S.modal = null; render(); },
@@ -474,42 +484,23 @@ document.addEventListener("change", async (e) => {
       if (x && dc) dc.value = x.desc;
     }
     if (t.dataset.quota) {
+      const pid = t.dataset.quota;
       if (t.value === "") {
-        await fj(API.quotas, { method: "DELETE", body: { cliente_id: S.cotaCliente, produto_id: t.dataset.quota } });
-        delete S.cotas[t.dataset.quota];
+        await fj(API.quotas, { method: "DELETE", body: { cliente_id: S.cotaCliente, produto_id: pid } });
         return toast("Cota removida: sem limite");
       }
-      await fj(API.quotas, { method: UPDATE_METHOD, body: { cliente_id: S.cotaCliente, produto_id: t.dataset.quota, quantidade: num(t.value) } });
-      S.cotas[t.dataset.quota] = num(t.value); toast("Cota salva");
+      const r = await fj(API.quotas, { method: UPDATE_METHOD, body: { cliente_id: S.cotaCliente, produto_id: pid, quantidade: num(t.value) } });
+      await loadCotas();
+      return toast(`Cota salva: restam ${r && r.restante != null ? r.restante : num(t.value)}`);
     }
     if (t.dataset.import !== undefined && t.files[0]) {
       const file = t.files[0];
-      const arrayBuffer = await file.arrayBuffer();
-      const base64 = btoa(new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), ''));
-      
-      if (!window.XLSX) await new Promise((ok, no) => { const s = document.createElement("script"); s.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"; s.onload = ok; s.onerror = () => no(new Error("Não consegui carregar o leitor de planilhas")); document.head.appendChild(s); });
-      const wb = XLSX.read(arrayBuffer);
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      let rows = XLSX.utils.sheet_to_json(ws, { defval: "" });
-      
-      const firstKey = Object.keys(rows[0] || {})[0];
-      if (firstKey && firstKey.includes('COPAG')) {
-        rows = rows.slice(4).map(r => {
-          const keys = Object.keys(r);
-          return {
-            codigo: String(r[keys[0]] || '').trim(),
-            nome: String(r[keys[1]] || '').trim(),
-            categoria: 'Geral',
-            caixa_master: parseCaixaMaster(String(r[keys[2]] || '')),
-            preco_caixa_master: toFloat(r[keys[3]]),
-            pdv_sugerido: toFloat(r[keys[12]]),
-            status: 'DISPONÍVEL',
-            ativo: true
-          };
-        }).filter(r => r.codigo);
-      }
-      
-      S.imp = { nome: file.name, file: base64, rows };
+      S.imp = { nome: file.name, rows: [], file: await new Promise((ok, no) => {
+        const r = new FileReader();
+        r.onload = () => ok(r.result);
+        r.onerror = () => no(new Error("Não consegui ler a planilha"));
+        r.readAsDataURL(file);
+      })};
       render();
     }
   } catch (err) { toast(err.message || "Algo deu errado"); }

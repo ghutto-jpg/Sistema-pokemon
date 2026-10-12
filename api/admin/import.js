@@ -1,6 +1,6 @@
 ﻿import { supabaseAdmin } from '../../lib/supabase-admin.js';
 import { requireAdmin } from '../../lib/auth-admin.js';
-import { parseCopagSpreadsheet } from '../../../lib/parse-copag.js';
+import { parseCopagSpreadsheet } from '../../lib/parse-copag.js';
 
 const CHUNK = 200;
 
@@ -80,9 +80,10 @@ export default async function handler(req, res) {
       } else {
         novos.push({
           i,
-          row: {
-            codigo,
-            categoria: dados.categoria || 'Geral',
+            row: {
+              codigo,
+              nome: dados.nome,
+              categoria: dados.categoria || 'Geral',
             caixa_master: dados.caixa_master ?? 1,
             preco_caixa_master: dados.preco_caixa_master ?? 0,
             pdv_sugerido: dados.pdv_sugerido ?? 0,
