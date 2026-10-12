@@ -427,8 +427,18 @@ const A = {
     const itens = Object.entries(S.cart).map(([id, quantidade]) => ({ produto_id: Number(id), quantidade }));
     const r = await fj(API.order, { method: "POST", body: { itens } });
     const c = S.cliente || {};
-    const linhas = S.catalogo.filter((p) => S.cart[p[F.p.id]]).map((p) => { const bs = boxSize(p), c = Math.floor(S.cart[p[F.p.id]] / bs); return `${c} x ${p[F.p.nome]}`; }).join("\n");
-    const txt = `Olá! Pedido #${r.pedido_id}\nCliente: ${c.nome_fantasia || ""}\nCNPJ: ${maskCnpj(c.cnpj)}\n\n${linhas}\n\nTotal: ${brl(cartTotal())}`;
+    
+    const linhas = S.catalogo.filter((p) => S.cart[p[F.p.id]]).map((p) => {
+      const bs = boxSize(p);
+      const qtdUnidades = S.cart[p[F.p.id]];
+      const caixas = Math.floor(qtdUnidades / bs);
+      const valorCaixa = num(p.preco_caixa_com_desconto);
+      const subtotal = caixas * valorCaixa;
+      return `* ${p[F.p.codigo]} - ${p[F.p.nome]}\nCaixas Master: ${caixas}\nValor Caixa: ${brl(valorCaixa)}\nSubtotal: ${brl(subtotal)}`;
+    }).join("\n\n");
+    
+    const txt = `NOVO PEDIDO\n\nCliente: ${c.nome_fantasia || ""}\nCNPJ: ${maskCnpj(c.cnpj)}\n\n${linhas}\n\nTOTAL: ${brl(cartTotal())}\n\nPedido sujeito à confirmação de disponibilidade`;
+    
     const fone = digits(S.vendedor);
     S.done = { id: r.pedido_id, url: fone ? `https://wa.me/${fone}?text=${encodeURIComponent(txt)}` : "" };
     S.cart = {}; S.cartOpen = false;
