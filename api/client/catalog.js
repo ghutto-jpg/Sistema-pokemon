@@ -10,7 +10,6 @@ export default async function handler(req, res) {
   try {
     const clienteId = sessao.cliente_id;
 
-    // Dados do cliente sempre do banco: se o admin desativar ou mudar o desconto, vale na hora.
     const { data: cli } = await supabaseAdmin
       .from('clientes').select('id, cnpj, nome_fantasia, desconto, ativo').eq('id', clienteId).maybeSingle();
     if (!cli || !cli.ativo) return res.status(401).json({ ok: false, error: 'Cliente não autorizado' });
@@ -22,7 +21,6 @@ export default async function handler(req, res) {
       supabaseAdmin.from('configuracoes').select('chave, valor'),
     ]);
 
-    // Quanto o cliente já pediu de cada produto (a cota vale pelo total).
     const usado = new Map();
     const ids = (ped.data || []).map((p) => p.id);
     if (ids.length) {
@@ -35,10 +33,10 @@ export default async function handler(req, res) {
     const dc = Number(cli.desconto) || 0;
 
     const produtos = (prod.data || [])
-      .filter((p) => cotaMap.get(p.id) !== 0) // cota 0 = produto bloqueado para este cliente
+      .filter((p) => cotaMap.get(p.id) !== 0)
       .map((p) => {
         const { precoCaixaDesc, precoUnit } = calcPrice(dc, p.preco_caixa_master, p.caixa_master);
-        const cota = cotaMap.has(p.id) ? cotaMap.get(p.id) : null; // null = sem limite
+        const cota = cotaMap.has(p.id) ? cotaMap.get(p.id) : null;
         const restante = cota === null ? null : Math.max(0, cota - (usado.get(p.id) || 0));
         return { ...p, desconto_cliente: dc, preco_caixa_com_desconto: precoCaixaDesc, preco_unitario: precoUnit, cota, restante };
       });

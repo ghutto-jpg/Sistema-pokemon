@@ -83,7 +83,7 @@ async function fj(url, opts = {}) {
    ===================================================================== */
 const S = {
   area: "cliente", admin: false, tab: "produtos", q: "", modal: null,
-  produtos: [], clientes: [], config: [], cotas: {}, cotaCliente: "", imp: { nome: "", rows: [] },
+  produtos: [], clientes: [], config: [], cotas: {}, cotaCliente: "", imp: { nome: "", rows: [], file: "" },
   cliente: null, catalogo: [], cart: {}, cartOpen: false, vendedor: "", done: null,
 };
 
@@ -236,18 +236,30 @@ function tClientes() {
 
 function tCotas() {
   const opts = `<option value="">Escolha um cliente</option>` + S.clientes.map((c) => `<option value="${esc(c[F.c.id])}" ${String(c[F.c.id]) === String(S.cotaCliente) ? "selected" : ""}>${esc(c[F.c.nome])}</option>`).join("");
-  const lista = S.cotaCliente ? S.produtos.map((p) => `<div class="tc-quota"><div><b>${esc(p[F.p.nome])}</b><small> ${esc(p[F.p.codigo])}</small></div>
-    <input class="tc-in" type="number" min="0" placeholder="sem limite" data-quota="${esc(p[F.p.id])}" value="${esc(S.cotas[p[F.p.id]] ?? "")}"></div>`).join("") : `<div class="tc-empty">Escolha um cliente para definir quanto ele pode comprar de cada produto. O valor salva ao sair do campo. Campo vazio = sem limite, 0 = bloqueado.</div>`;
+  const lista = S.cotaCliente ? S.produtos.map((p) => {
+    const pid = p[F.p.id];
+    const cota = S.cotas[pid];
+    const usado = cota != null ? (cota - Math.max(0, cota - (p.restante ?? cota))) : 0;
+    return `<div class="tc-quota"><div><b>${esc(p[F.p.nome])}</b><small> ${esc(p[F.p.codigo])}</small>${cota != null ? ` <span style="color:var(--mute);font-size:12px">usado: ${usado}/${cota} (restam: ${p.restante ?? cota})</span>` : ''}</div>
+      <input class="tc-in" type="number" min="0" placeholder="sem limite" data-quota="${esc(pid)}" value="${esc(cota ?? "")}">
+    </div>`;
+  }).join("") : `<div class="tc-empty">Escolha um cliente para definir a cota total por produto. Campo vazio = sem limite, 0 = bloqueado. Para "resetar", basta alterar o valor.</div>`;
   return `<div class="tc-bar"><select class="tc-sel" style="max-width:340px" data-bind="cotaCliente">${opts}</select></div>${lista}`;
 }
 
 function tImportar() {
+  const hasFile = !!S.imp.file;
   const r = S.imp.rows;
   const cols = r[0] ? Object.keys(r[0]).slice(0, 6) : [];
+  let preview = '';
+  if (r.length) {
+    preview = `<p style="margin-top:14px"><b>${esc(S.imp.nome)}</b> tem ${r.length} linhas. Prévia das primeiras:</p>
+    <div style="overflow:auto"><table class="tc-prev"><tr>${cols.map((c) => `<th>${esc(c)}</th>`).join("")}</tr>${r.slice(0, 5).map((x) => `<tr>${cols.map((c) => `<td>${esc(x[c])}</td>`).join("")}</tr>`).join("")}</table></div>`;
+  } else if (hasFile) {
+    preview = `<p style="margin-top:14px"><b>${esc(S.imp.nome)}</b> selecionado. O processamento será feito no servidor.</p>`;
+  }
   return `<div class="tc-drop"><p>Envie uma planilha .xlsx ou .csv. Produtos com o mesmo código são atualizados.</p><input type="file" accept=".xlsx,.xls,.csv" data-import></div>` +
-    (r.length ? `<p style="margin-top:14px"><b>${esc(S.imp.nome)}</b> tem ${r.length} linhas. Prévia das primeiras:</p>
-    <div style="overflow:auto"><table class="tc-prev"><tr>${cols.map((c) => `<th>${esc(c)}</th>`).join("")}</tr>${r.slice(0, 5).map((x) => `<tr>${cols.map((c) => `<td>${esc(x[c])}</td>`).join("")}</tr>`).join("")}</table></div>
-    <div class="tc-foot"><button class="tc-btn" data-act="importGo">Importar ${r.length} linhas</button></div>` : "");
+    (preview ? preview + `<div class="tc-foot"><button class="tc-btn" data-act="importGo">Importar</button></div>` : '');
 }
 
 function tConfig() {
@@ -381,9 +393,11 @@ const A = {
   async togP(el) { const p = byId(S.produtos, F.p.id, el.dataset.id); await fj(API.products, { method: UPDATE_METHOD, body: { ...p, [F.p.ativo]: !p[F.p.ativo] } }); await loadAdmin(); },
   async togC(el) { const c = byId(S.clientes, F.c.id, el.dataset.id); await fj(API.clients, { method: UPDATE_METHOD, body: { [F.c.id]: c[F.c.id], [F.c.ativo]: !c[F.c.ativo] } }); await loadAdmin(); },
   async importGo() {
-    const r = await fj(API.import, { method: "POST", body: { rows: S.imp.rows } });
-    S.imp = { nome: "", rows: [] }; await loadAdmin();
-    toast(r ? `Importação: ${r.criados} novos, ${r.atualizados} atualizados, ${r.erros} com erro` : "Importação concluída");
+    const body = S.imp.file ? { file: S.imp.file } : { rows: S.imp.rows };
+    const r = await fj(API.import, { method: "POST", body });
+    S.imp = { nome: "", rows: [], file: "" }; await loadAdmin();
+    const msg = r && r.ok ? `Importação: ${r.criados} novos, ${r.atualizados} atualizados, ${r.erros} com erro, ${r.categorias || 0} categorias` : (r?.error || "Importação concluída");
+    toast(msg);
   },
   addCfg() { S.config.push({ chave: "", valor: "" }); render(); },
   async saveCfg() { await fj(API.settings, { method: UPDATE_METHOD, body: { configuracoes: S.config.filter((c) => c.chave) } }); toast("Configurações salvas"); },
@@ -451,7 +465,6 @@ document.addEventListener("change", async (e) => {
     }
     if (t.dataset.quota) {
       if (t.value === "") {
-        // campo vazio = volta a ser "sem limite" (remove a cota)
         await fj(API.quotas, { method: "DELETE", body: { cliente_id: S.cotaCliente, produto_id: t.dataset.quota } });
         delete S.cotas[t.dataset.quota];
         return toast("Cota removida: sem limite");
@@ -460,10 +473,15 @@ document.addEventListener("change", async (e) => {
       S.cotas[t.dataset.quota] = num(t.value); toast("Cota salva");
     }
     if (t.dataset.import !== undefined && t.files[0]) {
+      const file = t.files[0];
+      const arrayBuffer = await file.arrayBuffer();
+      const base64 = btoa(new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), ''));
+      
       if (!window.XLSX) await new Promise((ok, no) => { const s = document.createElement("script"); s.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"; s.onload = ok; s.onerror = () => no(new Error("Não consegui carregar o leitor de planilhas")); document.head.appendChild(s); });
-      const wb = XLSX.read(await t.files[0].arrayBuffer());
-      let rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: "" });
-      // Detecta planilha COPAG (título na primeira coluna) e converte colunas __EMPTY
+      const wb = XLSX.read(arrayBuffer);
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      let rows = XLSX.utils.sheet_to_json(ws, { defval: "" });
+      
       const firstKey = Object.keys(rows[0] || {})[0];
       if (firstKey && firstKey.includes('COPAG')) {
         rows = rows.slice(4).map(r => {
@@ -480,7 +498,8 @@ document.addEventListener("change", async (e) => {
           };
         }).filter(r => r.codigo);
       }
-      S.imp = { nome: t.files[0].name, rows };
+      
+      S.imp = { nome: file.name, file: base64, rows };
       render();
     }
   } catch (err) { toast(err.message || "Algo deu errado"); }

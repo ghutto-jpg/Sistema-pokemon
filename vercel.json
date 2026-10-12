@@ -9,6 +9,9 @@
   "functions": {
     "api/admin/products-upload.js": {
       "maxDuration": 30
+    },
+    "api/admin/import.js": {
+      "maxDuration": 60
     }
   }
 }

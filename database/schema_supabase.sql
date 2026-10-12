@@ -76,7 +76,7 @@ on conflict (chave) do nothing;
 
 -- Cria o pedido validando cliente, produto e cota.
 -- Regra de cota: sem linha em "cotas" = sem limite; quantidade 0 = bloqueado;
--- a cota vale pelo TOTAL ja pedido pelo cliente (soma de todos os pedidos).
+-- A cota é vitalícia (soma de todos os pedidos). Admin ajusta manualmente quando quiser resetar.
 create or replace function criar_pedido(p_cliente_id bigint, p_itens jsonb)
 returns bigint
 language plpgsql

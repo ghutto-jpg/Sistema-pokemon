@@ -6,7 +6,6 @@ export default async function handler(req, res) {
   if (!admin) return res.status(401).json({ ok: false });
 
   try {
-    // Lista cotas (de um cliente, se vier ?cliente_id=)
     if (req.method === 'GET') {
       const { cliente_id } = req.query || {};
       let q = supabaseAdmin.from('cotas').select('*');
@@ -19,7 +18,6 @@ export default async function handler(req, res) {
     const body = req.body || {};
     const { cliente_id, produto_id } = body;
 
-    // Cria ou atualiza a cota (0 = bloqueado)
     if (req.method === 'PUT') {
       if (!cliente_id || !produto_id) return res.status(400).json({ ok: false, error: 'required' });
       const quantidade = Number(body.quantidade);
@@ -33,7 +31,6 @@ export default async function handler(req, res) {
       return res.json({ ok: true });
     }
 
-    // Remove a cota: o produto volta a ficar "sem limite" para esse cliente
     if (req.method === 'DELETE') {
       if (!cliente_id || !produto_id) return res.status(400).json({ ok: false, error: 'required' });
       const { error } = await supabaseAdmin
