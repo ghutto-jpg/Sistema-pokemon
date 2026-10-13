@@ -82,7 +82,7 @@ async function fj(url, opts = {}) {
    3. Estado
    ===================================================================== */
 const S = {
-  area: "cliente", admin: false, tab: "produtos", q: "", modal: null,
+  area: "cliente", admin: false, tab: "produtos", q: "", modal: null, cat: "",
   produtos: [], clientes: [], config: [], cotas: {}, cotaCliente: "", imp: { nome: "", rows: [], file: "" },
   cliente: null, catalogo: [], cart: {}, cartOpen: false, vendedor: "", done: null,
 };
@@ -144,6 +144,12 @@ body{margin:0;background:radial-gradient(1200px 600px at 80% -10%,#2f2a79 0%,tra
 @keyframes bump{40%{transform:scale(1.18) rotate(-4deg)}}
 .tc-cartbtn i{position:absolute;top:-8px;right:-8px;background:var(--hot);color:#fff;font-style:normal;font-size:12px;min-width:22px;height:22px;border-radius:99px;display:grid;place-items:center;padding:0 5px}
 .tc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:20px}
+.tc-filterbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:18px}
+.tc-filterbar .tc-in{flex:1;min-width:200px;max-width:none}
+.tc-chips{display:flex;gap:6px;flex-wrap:wrap}
+.tc-chip{background:#15133a;border:1px solid var(--line);color:var(--text);border-radius:99px;padding:7px 14px;font-size:13px;cursor:pointer;transition:.15s;white-space:nowrap}
+.tc-chip:hover{border-color:var(--gold);color:var(--gold)}
+.tc-chip.on{background:var(--gold);color:#2a2200;border-color:var(--gold)}
 .tc-card{position:relative;background:var(--panel);border:3px solid var(--gold);border-radius:18px;padding:12px;transition:box-shadow .2s,transform .1s;overflow:hidden;animation:deal .5s backwards;animation-delay:calc(var(--i)*40ms)}
 @keyframes deal{from{opacity:0;transform:translateY(30px) rotate(3deg)}}
 .tc-card:hover{box-shadow:0 12px 30px #0008;transform:translateY(-2px)}
@@ -329,10 +335,20 @@ function cardHtml(p, i) {
 function viewLoja() {
   const n = cartCount();
   const lines = S.catalogo.filter((p) => S.cart[p[F.p.id]]).map((p) => { const bs = boxSize(p), c = Math.floor(S.cart[p[F.p.id]] / bs); return `<div class="tc-line"><span>${c} x ${esc(p[F.p.nome])}</span><b>${brl(c * priceBox(p))}</b></div>`; }).join("");
+  const cats = [...new Set(S.catalogo.map((p) => (p[F.p.categoria] || "").trim()).filter(Boolean))].sort();
+  const shown = S.catalogo.filter((p) => {
+    const q = S.q.trim().toLowerCase();
+    const cat = (p[F.p.categoria] || "").trim();
+    const matchQ = !q || (p[F.p.nome] + " " + p[F.p.codigo]).toLowerCase().includes(q);
+    const matchC = !S.cat || cat === S.cat;
+    return matchQ && matchC;
+  });
   return `<div class="tc-shop"><div class="tc-hello"><h2>Olá, ${esc(S.cliente?.[F.c.nome] || S.cliente?.nome || "bem-vindo")}</h2>
     <button class="tc-btn ghost sm" data-act="cliLogout">Sair</button>
     <button class="tc-btn tc-cartbtn" data-act="openCart">Meu pedido${n ? `<i>${n}</i>` : ""}</button></div>
-    ${S.catalogo.length ? `<div class="tc-grid">${S.catalogo.map(cardHtml).join("")}</div>` : `<div class="tc-empty">Nenhum produto liberado para você por enquanto. Fale com o vendedor.</div>`}</div>
+    <div class="tc-filterbar"><input class="tc-in" placeholder="🔍 Buscar produto por nome ou código" data-bind="q" value="${esc(S.q)}">
+      <div class="tc-chips"><span class="tc-chip ${!S.cat ? "on" : ""}" data-act="setCat" data-id="">Todas</span>${cats.map((c) => `<span class="tc-chip ${S.cat === c ? "on" : ""}" data-act="setCat" data-id="${esc(c)}">${esc(c)}</span>`).join("")}</div></div>
+    ${shown.length ? `<div class="tc-grid">${shown.map(cardHtml).join("")}</div>` : `<div class="tc-empty">Nenhum produto encontrado para os filtros selecionados.</div>`}</div>
     ${S.cartOpen ? `<div class="tc-drawer-bg" data-act="closeCart"></div><aside class="tc-drawer"><h3>Meu pedido</h3>
       <div class="tc-lines">${lines || `<div class="tc-empty">Seu pedido está vazio. Use o + nos produtos.</div>`}</div>
       <div class="tc-total"><span>Total</span><span>${brl(cartTotal())}</span></div>
@@ -370,6 +386,7 @@ const A = {
   },
   async logout() { try { await fj(API.adminAuth + "?action=logout", { method: "POST" }); } catch {} S.admin = false; render(); },
   tab(el) { S.tab = el.dataset.id; S.q = ""; render(); },
+  setCat(el) { S.cat = el.dataset.id; render(); },
   newP() { S.modal = { type: "p", data: {} }; render(); },
   editP(el) { S.modal = { type: "p", data: byId(S.produtos, F.p.id, el.dataset.id) }; render(); },
   confirmDelP(el) { const p = byId(S.produtos, F.p.id, el.dataset.id); S.modal = { type: "delP", data: p }; render(); },
