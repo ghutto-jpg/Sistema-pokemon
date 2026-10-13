@@ -340,6 +340,7 @@ function viewLoja() {
     { label: "Baralho", key: "baralho" },
     { label: "Pokémon", key: "pokémon" },
     { label: "Jogos", key: "jogos" },
+    { label: "Lorcana", key: "lorcana" },
   ];
   const shown = S.catalogo.filter((p) => {
     const q = S.q.trim().toLowerCase();
