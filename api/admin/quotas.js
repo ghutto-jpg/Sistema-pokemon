@@ -12,7 +12,15 @@ async function consumido(cliente_id) {
       .in('pedido_id', ids);
     (itens || []).forEach((i) => map.set(i.produto_id, (map.get(i.produto_id) || 0) + Number(i.quantidade)));
   }
-  return map;
+  // Converter unidades para caixas
+  const boxMap = new Map();
+  const { data: prods } = await supabaseAdmin.from('produtos').select('id, caixa_master');
+  const boxSizeMap = new Map((prods || []).map((p) => [p.id, Number(p.caixa_master) || 1]));
+  map.forEach((qtdUnidades, pid) => {
+    const boxSize = boxSizeMap.get(pid) || 1;
+    boxMap.set(pid, Math.floor(qtdUnidades / boxSize));
+  });
+  return boxMap;
 }
 
 export default async function handler(req, res) {
@@ -37,14 +45,13 @@ export default async function handler(req, res) {
       const data = (prod.data || []).map((p) => {
         const usado = usadoMap.get(p.id) || 0;
         const tem = cotaMap.has(p.id);
-        const boxSize = boxSizeMap.get(p.id) || 1;
-        const quantidade = tem ? Math.floor(cotaMap.get(p.id) / boxSize) : null;
-        const usadoCaixas = Math.floor(usado / boxSize);
+        const quantidade = tem ? cotaMap.get(p.id) : null;
+        const restante = tem ? Math.max(0, quantidade - usado) : null;
         return {
           produto_id: p.id, codigo: p.codigo, nome: p.nome,
           quantidade,
-          usado: usadoCaixas,
-          restante: tem ? Math.max(0, quantidade - usadoCaixas) : null,
+          usado,
+          restante,
         };
       });
       return res.json({ ok: true, data });
@@ -55,23 +62,16 @@ export default async function handler(req, res) {
 
     if (req.method === 'PUT') {
       if (!cliente_id || !produto_id) return res.status(400).json({ ok: false, error: 'required' });
-      const caixasRestantes = Number(body.quantidade);
-      if (!Number.isFinite(caixasRestantes) || caixasRestantes < 0) {
+      const caixas = Number(body.quantidade);
+      if (!Number.isFinite(caixas) || caixas < 0) {
         return res.status(400).json({ ok: false, error: 'quantidade >= 0' });
       }
-      const { data: prod } = await supabaseAdmin
-        .from('produtos')
-        .select('caixa_master')
-        .eq('id', produto_id)
-        .maybeSingle();
-      const boxSize = Number(prod?.caixa_master) || 1;
       const usado = (await consumido(cliente_id)).get(produto_id) || 0;
-      const quantidade = usado + caixasRestantes * boxSize;
       const { error } = await supabaseAdmin
         .from('cotas')
-        .upsert({ cliente_id, produto_id, quantidade }, { onConflict: 'cliente_id,produto_id' });
+        .upsert({ cliente_id, produto_id, quantidade: caixas }, { onConflict: 'cliente_id,produto_id' });
       if (error) return res.status(400).json({ ok: false, error: error.message });
-      return res.json({ ok: true, quantidade, usado, restante: caixasRestantes });
+      return res.json({ ok: true, quantidade: caixas, usado, restante: caixas - usado });
     }
 
     if (req.method === 'DELETE') {

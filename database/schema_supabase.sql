@@ -77,7 +77,7 @@ on conflict (chave) do nothing;
 
 -- Cria o pedido validando cliente, produto e cota.
 -- Regra de cota: sem linha em "cotas" = sem limite; quantidade 0 = bloqueado;
--- A cota é vitalícia (soma de todos os pedidos). Admin ajusta manualmente quando quiser resetar.
+-- A cota é em CAIXAS MASTER (vitalícia, soma de todos os pedidos). Admin ajusta manualmente quando quiser resetar.
 create or replace function criar_pedido(p_cliente_id bigint, p_itens jsonb)
 returns bigint
 language plpgsql
@@ -91,6 +91,7 @@ declare
   v_cota int;
   v_consumido int;
   v_restante int;
+  v_box_size int;
   v_preco_caixa_desc numeric(12,2);
   v_preco_unit numeric(12,2);
 begin
@@ -121,12 +122,15 @@ begin
       raise exception 'Produto bloqueado para este cliente';
     end if;
 
-    select coalesce(sum(pi.quantidade), 0) into v_consumido
+    v_box_size := coalesce(v_produto.caixa_master, 1);
+
+    select coalesce(sum(floor(pi.quantidade / v_box_size)), 0) into v_consumido
       from pedido_itens pi join pedidos p on p.id = pi.pedido_id
       where p.cliente_id = p_cliente_id and pi.produto_id = v_produto.id;
 
     if v_cota is not null then
       v_restante := v_cota - v_consumido;
+      -- v_item.quantidade vem em caixas do frontend
       if v_restante < v_item.quantidade then
         raise exception 'Quantidade acima da cota disponível para o produto';
       end if;
@@ -138,8 +142,9 @@ begin
       else v_preco_caixa_desc / v_produto.caixa_master::numeric
     end;
 
+    -- Salvar em unidades no banco (compatibilidade)
     insert into pedido_itens (pedido_id, produto_id, quantidade, preco_unitario)
-      values (v_pedido_id, v_produto.id, v_item.quantidade, v_preco_unit);
+      values (v_pedido_id, v_produto.id, v_item.quantidade * v_box_size, v_preco_unit);
   end loop;
 
   return v_pedido_id;

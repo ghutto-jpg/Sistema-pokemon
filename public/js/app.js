@@ -244,10 +244,10 @@ function tCotas() {
     const pid = p[F.p.id];
     const c = S.cotas[pid];
     const tem = c && c.quantidade != null;
-    return `<div class="tc-quota"><div><b>${esc(p[F.p.nome])}</b><small> ${esc(p[F.p.codigo])}</small>${tem ? ` <span style="color:var(--mute);font-size:12px">usado: ${c.usado}/${c.quantidade} (restam: ${c.restante})</span>` : ''}</div>
-      <input class="tc-in" type="number" min="0" placeholder="sem limite" data-quota="${esc(pid)}" value="${tem ? esc(c.restante) : ""}" title="O número é o contador: quanto o cliente ainda pode comprar">
+    return `<div class="tc-quota"><div><b>${esc(p[F.p.nome])}</b><small> ${esc(p[F.p.codigo])}</small>${tem ? ` <span style="color:var(--mute);font-size:12px">usado: ${c.usado}/${c.quantidade} (restam: ${c.restante}) caixas</span>` : ''}</div>
+      <input class="tc-in" type="number" min="0" placeholder="sem limite" data-quota="${esc(pid)}" value="${tem ? esc(c.restante) : ""}" title="O número é caixas restantes que o cliente pode comprar: vazio = sem limite, 0 = bloqueado">
     </div>`;
-  }).join("") : `<div class="tc-empty">Escolha um cliente para definir a cota por produto. O campo é o contador do que o cliente AINDA pode comprar (vitalício, sem prazo): campo vazio = sem limite, 0 = bloqueado. Ao comprar, o contador diminui; para dar mais cota, some o valor e salve.</div>`;
+  }).join("") : `<div class="tc-empty">Escolha um cliente para definir a cota por produto. O campo é caixas restantes que o cliente AINDA pode comprar (vitalício, sem prazo): campo vazio = sem limite, 0 = bloqueado. Ao comprar, o contador diminui; para dar mais cota, some o valor e salve.</div>`;
   return `<div class="tc-bar"><select class="tc-sel" style="max-width:340px" data-bind="cotaCliente">${opts}</select></div>${lista}`;
 }
 
@@ -315,26 +315,26 @@ function viewClienteLogin() {
 const price = (p) => num(p.preco_unitario);
 const priceBox = (p) => num(p.preco_caixa_com_desconto);
 const boxSize = (p) => num(p[F.p.caixa]) || 1;
-// restante = cota menos o que o cliente já pediu; sem cota = sem limite
+// restante = cota menos o que o cliente já pediu (em caixas); sem cota = sem limite
 const limite = (p) => (p.restante != null ? num(p.restante) : p.cota != null ? num(p.cota) : Infinity);
-const cartCount = () => S.catalogo.reduce((a, p) => a + Math.floor((S.cart[p[F.p.id]] || 0) / boxSize(p)), 0);
-const cartTotal = () => S.catalogo.reduce((a, p) => a + Math.floor((S.cart[p[F.p.id]] || 0) / boxSize(p)) * priceBox(p), 0);
+// Carrinho armazena CAIXAS (não unidades)
+const cartCount = () => Object.values(S.cart).reduce((a, q) => a + q, 0);
+const cartTotal = () => S.catalogo.reduce((a, p) => a + (S.cart[p[F.p.id]] || 0) * priceBox(p), 0);
 
 function cardHtml(p, i) {
-  const id = p[F.p.id], q = S.cart[id] || 0, lim = limite(p), bs = boxSize(p);
-  const caixas = Math.floor(q / bs);
+  const id = p[F.p.id], q = S.cart[id] || 0, lim = limite(p);
   const off = lim <= 0 || p[F.p.status] === "A CONFIRMAR";
   return `<article class="tc-card ${off ? "tc-off" : ""}" style="--i:${i}">
     <div class="tc-img">${p[F.p.img] ? `<img src="${esc(p[F.p.img])}" alt="${esc(p[F.p.nome])}" loading="lazy">` : "✦"}</div>
     <h3>${esc(p[F.p.nome])}</h3>     <div class="sub">${esc(p[F.p.categoria] || "")}${p[F.p.caixa] ? ", caixa com " + p[F.p.caixa] + " un." : ""}</div>
      <div class="tc-price">${brl(priceBox(p))}<span style="font-size:13px;font-weight:400;color:var(--mute)"> a caixa</span></div>
-    <div class="tc-lim">${p[F.p.status] === "A CONFIRMAR" ? "A confirmar" : lim <= 0 ? "Cota esgotada" : lim === Infinity ? "Sem limite de quantidade" : `Você ainda pode levar <b>${lim}</b>`}</div>
-    <div class="tc-step"><button data-act="sub" data-id="${esc(id)}" ${caixas <= 0 ? "disabled" : ""} aria-label="menos">−</button><b>${caixas}</b><button data-act="add" data-id="${esc(id)}" ${off || q + bs > lim ? "disabled" : ""} aria-label="mais">+</button></div></article>`;
+    <div class="tc-lim">${p[F.p.status] === "A CONFIRMAR" ? "A confirmar" : lim <= 0 ? "Cota esgotada" : lim === Infinity ? "Sem limite de quantidade" : `Você ainda pode levar <b>${lim}</b> caixas`}</div>
+    <div class="tc-step"><button data-act="sub" data-id="${esc(id)}" ${q <= 0 ? "disabled" : ""} aria-label="menos">−</button><b>${q}</b><button data-act="add" data-id="${esc(id)}" ${off || q + 1 > lim ? "disabled" : ""} aria-label="mais">+</button></div></article>`;
 }
 
 function viewLoja() {
   const n = cartCount();
-  const lines = S.catalogo.filter((p) => S.cart[p[F.p.id]]).map((p) => { const bs = boxSize(p), c = Math.floor(S.cart[p[F.p.id]] / bs); return `<div class="tc-line"><span>${c} x ${esc(p[F.p.nome])}</span><b>${brl(c * priceBox(p))}</b></div>`; }).join("");
+  const lines = S.catalogo.filter((p) => S.cart[p[F.p.id]]).map((p) => { const c = S.cart[p[F.p.id]]; return `<div class="tc-line"><span>${c} x ${esc(p[F.p.nome])}</span><b>${brl(c * priceBox(p))}</b></div>`; }).join("");
   const chips = [
     { label: "Todas", key: "" },
     { label: "Baralho", key: "baralho" },
@@ -453,30 +453,27 @@ const A = {
   },
   add(el) {
     const id = el.dataset.id, p = byId(S.catalogo, F.p.id, id), q = S.cart[id] || 0;
-    const bs = boxSize(p);
-    if (q + bs > limite(p)) return toast("Você atingiu a cota deste produto");
-    S.cart[id] = q + bs; render();
+    if (q + 1 > limite(p)) return toast("Você atingiu a cota deste produto");
+    S.cart[id] = q + 1; render();
     const b = $(".tc-cartbtn"); if (b) { b.classList.add("bump"); setTimeout(() => b.classList.remove("bump"), 400); }
   },
-  sub(el) { const id = el.dataset.id, p = byId(S.catalogo, F.p.id, id), bs = boxSize(p); S.cart[id] = Math.max(0, (S.cart[id] || 0) - bs); if (!S.cart[id]) delete S.cart[id]; render(); },
+  sub(el) { const id = el.dataset.id, q = S.cart[id] || 0; S.cart[id] = Math.max(0, q - 1); if (!S.cart[id]) delete S.cart[id]; render(); },
   openCart() { S.cartOpen = true; render(); },
   closeCart() { S.cartOpen = false; render(); },
-  async finish() {
+async finish() {
     const itens = Object.entries(S.cart).map(([id, quantidade]) => ({ produto_id: Number(id), quantidade }));
     const r = await fj(API.order, { method: "POST", body: { itens } });
     const c = S.cliente || {};
-    
+
     const linhas = S.catalogo.filter((p) => S.cart[p[F.p.id]]).map((p) => {
-      const bs = boxSize(p);
-      const qtdUnidades = S.cart[p[F.p.id]];
-      const caixas = Math.floor(qtdUnidades / bs);
+      const caixas = S.cart[p[F.p.id]];
       const valorCaixa = num(p.preco_caixa_com_desconto);
       const subtotal = caixas * valorCaixa;
       return `* ${p[F.p.codigo]} - ${p[F.p.nome]}\nCaixas Master: ${caixas}\nValor Caixa: ${brl(valorCaixa)}\nSubtotal: ${brl(subtotal)}`;
     }).join("\n\n");
-    
+
     const txt = `NOVO PEDIDO\n\nCliente: ${c.nome_fantasia || ""}\nCNPJ: ${maskCnpj(c.cnpj)}${c.prazo_pagamento ? `\nPrazo: ${c.prazo_pagamento}` : ""}\n\n${linhas}\n\nTOTAL: ${brl(cartTotal())}\n\nPedido sujeito à confirmação de disponibilidade`;
-    
+
     const fone = digits(S.vendedor);
     S.done = { id: r.pedido_id, url: fone ? `https://wa.me/${fone}?text=${encodeURIComponent(txt)}` : "" };
     S.cart = {}; S.cartOpen = false;

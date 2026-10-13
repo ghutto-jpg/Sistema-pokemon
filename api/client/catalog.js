@@ -26,7 +26,14 @@ export default async function handler(req, res) {
     if (ids.length) {
       const { data: itens } = await supabaseAdmin
         .from('pedido_itens').select('produto_id, quantidade').in('pedido_id', ids);
-      (itens || []).forEach((i) => usado.set(i.produto_id, (usado.get(i.produto_id) || 0) + i.quantidade));
+      // Converter unidades para caixas
+      const { data: prods } = await supabaseAdmin.from('produtos').select('id, caixa_master');
+      const boxSizeMap = new Map((prods || []).map((p) => [p.id, Number(p.caixa_master) || 1]));
+      (itens || []).forEach((i) => {
+        const boxSize = boxSizeMap.get(i.produto_id) || 1;
+        const caixas = Math.floor(i.quantidade / boxSize);
+        usado.set(i.produto_id, (usado.get(i.produto_id) || 0) + caixas);
+      });
     }
 
     const cotaMap = new Map((cot.data || []).map((c) => [c.produto_id, c.quantidade]));
