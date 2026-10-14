@@ -347,7 +347,7 @@ function viewLoja() {
   const chips = [
     { label: "Todas", key: "" },
     { label: "Baralho", key: "baralho" },
-    { label: \"pokemon\", key: \"pokemon\" },
+    { label: "Pokémon", key: "pokemon" },
     { label: "Jogos", key: "jogos" },
     { label: "Lorcana", key: "lorcana" },
   ];
