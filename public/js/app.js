@@ -344,12 +344,17 @@ function cardHtml(p, i) {
 function viewLoja() {
   const n = cartCount();
   const lines = S.catalogo.filter((p) => S.cart[p[F.p.id]]).map((p) => { const c = S.cart[p[F.p.id]]; return `<div class="tc-line"><span>${c} x ${esc(p[F.p.nome])}</span><b>${brl(c * priceBox(p))}</b></div>`; }).join("");
+  const countByCat = {};
+  S.catalogo.forEach((p) => {
+    const cat = norm(p[F.p.categoria]);
+    if (cat) countByCat[cat] = (countByCat[cat] || 0) + 1;
+  });
   const chips = [
-    { label: "Todas", key: "" },
-    { label: "Baralho", key: "baralho" },
-    { label: "Pokémon", key: "pokemon" },
-    { label: "Jogos", key: "jogos" },
-    { label: "Lorcana", key: "lorcana" },
+    { label: "Todas", key: "", count: S.catalogo.length },
+    { label: "Baralho", key: "baralho", count: countByCat["baralho"] || 0 },
+    { label: "Pokémon", key: "pokemon", count: countByCat["pokemon"] || 0 },
+    { label: "Jogos", key: "jogos", count: countByCat["jogos"] || 0 },
+    { label: "Lorcana", key: "lorcana", count: countByCat["lorcana"] || 0 },
   ];
   const shown = S.catalogo.filter((p) => {
     const qn = norm(S.q);
@@ -362,7 +367,7 @@ function viewLoja() {
     <button class="tc-btn ghost sm" data-act="cliLogout">Sair</button>
     <button class="tc-btn tc-cartbtn" data-act="openCart">Meu pedido${n ? `<i>${n}</i>` : ""}</button></div>
     <div class="tc-filterbar"><input class="tc-in" placeholder="🔍 Buscar produto por nome ou código" data-bind="q" value="${esc(S.q)}">
-      <div class="tc-chips">${chips.map((c) => `<span class="tc-chip ${S.cat === c.key ? "on" : ""}" data-act="setCat" data-id="${esc(c.key)}">${esc(c.label)}</span>`).join("")}</div></div>
+      <div class="tc-chips">${chips.map((c) => `<span class="tc-chip ${S.cat === c.key ? "on" : ""}" data-act="setCat" data-id="${esc(c.key)}">${esc(c.label)}${c.count ? ` (${c.count})` : ""}</span>`).join("")}</div></div>
     ${shown.length ? `<div class="tc-grid">${shown.map(cardHtml).join("")}</div>` : `<div class="tc-empty">Nenhum produto encontrado para os filtros selecionados.</div>`}</div>
     ${S.cartOpen ? `<div class="tc-drawer-bg" data-act="closeCart"></div><aside class="tc-drawer"><h3>Meu pedido</h3>
       <div class="tc-lines">${lines || `<div class="tc-empty">Seu pedido está vazio. Use o + nos produtos.</div>`}</div>
