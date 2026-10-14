@@ -66,23 +66,37 @@ export default async function handler(req, res) {
       if (!Number.isFinite(caixas) || caixas < 0) {
         return res.status(400).json({ ok: false, error: 'quantidade >= 0' });
       }
-      const usado = (await consumido(cliente_id)).get(produto_id) || 0;
+const usado = (await consumido(cliente_id)).get(produto_id) || 0;
+      const cotaTotal = caixas + usado;
       const { error } = await supabaseAdmin
         .from('cotas')
-        .upsert({ cliente_id, produto_id, quantidade: caixas }, { onConflict: 'cliente_id,produto_id' });
+        .upsert({ cliente_id, produto_id, quantidade: cotaTotal }, { onConflict: 'cliente_id,produto_id' });
       if (error) return res.status(400).json({ ok: false, error: error.message });
-      return res.json({ ok: true, quantidade: caixas, usado, restante: caixas - usado });
+      return res.json({ ok: true, quantidade: cotaTotal, usado, restante: caixas });
     }
 
     if (req.method === 'DELETE') {
-      if (!cliente_id || !produto_id) return res.status(400).json({ ok: false, error: 'required' });
-      const { error } = await supabaseAdmin
-        .from('cotas')
-        .delete()
-        .eq('cliente_id', cliente_id)
-        .eq('produto_id', produto_id);
-      if (error) return res.status(400).json({ ok: false, error: error.message });
-      return res.json({ ok: true });
+      if (produto_id) {
+        if (!cliente_id) return res.status(400).json({ ok: false, error: 'required' });
+        const { error } = await supabaseAdmin
+          .from('cotas')
+          .delete()
+          .eq('cliente_id', cliente_id)
+          .eq('produto_id', produto_id);
+        if (error) return res.status(400).json({ ok: false, error: error.message });
+        return res.json({ ok: true });
+      }
+
+      if (cliente_id && body.all === true) {
+        const { error } = await supabaseAdmin
+          .from('cotas')
+          .delete()
+          .eq('cliente_id', cliente_id);
+        if (error) return res.status(400).json({ ok: false, error: error.message });
+        return res.json({ ok: true, cleared: true });
+      }
+
+      return res.status(400).json({ ok: false, error: 'required' });
     }
 
     return res.status(405).json({ ok: false });

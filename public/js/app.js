@@ -156,7 +156,8 @@ body{margin:0;background:radial-gradient(1200px 600px at 80% -10%,#2f2a79 0%,tra
 .tc-img{aspect-ratio:1/1;border-radius:10px;background:#15133a;display:grid;place-items:center;overflow:hidden;font-size:40px;color:var(--line)}
 .tc-img img{width:100%;height:100%;object-fit:cover}
 .tc-card h3{font-size:17px;margin:10px 0 2px}.tc-card .sub{color:var(--mute);font-size:13px}
-.tc-price{font:700 22px 'Bricolage Grotesque',sans-serif;margin:8px 0 2px}
+ .tc-price{font:700 22px 'Bricolage Grotesque',sans-serif;margin:8px 0 2px}
+ .tc-pvdsug{font-size:12px;color:#000;font-weight:700;background:#FFD93D;padding:2px 8px;border-radius:6px;display:inline-block;margin-top:4px}
 .tc-lim{font-size:13px;color:var(--mute);margin-bottom:10px}.tc-lim b{color:var(--gold)}
 .tc-step{display:flex;align-items:center;justify-content:space-between;background:#15133a;border-radius:12px;padding:4px}
 .tc-step button{width:38px;height:38px;border-radius:9px;border:0;background:var(--panel2);color:var(--text);font-size:20px}
@@ -248,7 +249,7 @@ function tCotas() {
       <input class="tc-in" type="number" min="0" placeholder="sem limite" data-quota="${esc(pid)}" value="${tem ? esc(c.restante) : ""}" title="O número é caixas restantes que o cliente pode comprar: vazio = sem limite, 0 = bloqueado">
     </div>`;
   }).join("") : `<div class="tc-empty">Escolha um cliente para definir a cota por produto. O campo é caixas restantes que o cliente AINDA pode comprar (vitalício, sem prazo): campo vazio = sem limite, 0 = bloqueado. Ao comprar, o contador diminui; para dar mais cota, some o valor e salve.</div>`;
-  return `<div class="tc-bar"><select class="tc-sel" style="max-width:340px" data-bind="cotaCliente">${opts}</select></div>${lista}`;
+   return `<div class="tc-bar"><select class="tc-sel" style="max-width:340px" data-bind="cotaCliente">${opts}</select>${S.cotaCliente ? `<button class="tc-btn danger sm" data-act="clearQuotas" style="margin-left:auto">Limpar cotas</button>` : ""}</div>${lista}`;
 }
 
 function tImportar() {
@@ -286,11 +287,17 @@ function modalHtml() {
     <label class="tc-lab">Imagem (sugerido 600 x 600 px)</label><input class="tc-in" type="file" name="file" accept="image/*">
     <label class="tc-lab"><input type="checkbox" name="ativo" ${d[p.ativo] === false ? "" : "checked"}> Produto ativo</label>
     <div class="tc-foot"><button class="tc-btn ghost" data-act="closeM">Cancelar</button><button class="tc-btn" data-act="saveP">Salvar produto</button></div>`;
-  } else if (m.type === "delP") {
+   } else if (m.type === "delP") {
     inner = `<h3>Excluir produto</h3>
     <p>Tem certeza que deseja excluir <b>${esc(d[F.p.nome])}</b> (${esc(d[F.p.codigo])})?</p>
     <p style="color:var(--mute);font-size:13px">Esta ação não pode ser desfeita.</p>
     <div class="tc-foot"><button class="tc-btn ghost" data-act="closeM">Cancelar</button><button class="tc-btn danger" data-act="delP" data-id="${esc(d[F.p.id])}">Sim, excluir</button></div>`;
+  } else if (m.type === "clearQuotas") {
+    const cliNome = esc(d.cliente_nome || "");
+    inner = `<h3>Limpar cotas</h3>
+    <p>Tem certeza que quer limpar <b>todas as cotas</b> do cliente <b>${cliNome}</b>?</p>
+    <p style="color:var(--mute);font-size:13px">Esta ação removerá todas as cotas. Não pode ser desfeita.</p>
+    <div class="tc-foot"><button class="tc-btn ghost" data-act="closeM">Cancelar</button><button class="tc-btn danger" data-act="confirmClearQuotas" data-id="${esc(d.cliente_id)}">Sim, limpar</button></div>`;
   } else {
     const c = F.c;
     inner = `<h3>${d[c.id] ? "Editar cliente" : "Novo cliente"}</h3>
@@ -318,6 +325,7 @@ const boxSize = (p) => num(p[F.p.caixa]) || 1;
 // restante = cota menos o que o cliente já pediu (em caixas); sem cota = sem limite
 const limite = (p) => (p.restante != null ? num(p.restante) : p.cota != null ? num(p.cota) : Infinity);
 // Carrinho armazena CAIXAS (não unidades)
+const norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 const cartCount = () => Object.values(S.cart).reduce((a, q) => a + q, 0);
 const cartTotal = () => S.catalogo.reduce((a, p) => a + (S.cart[p[F.p.id]] || 0) * priceBox(p), 0);
 
@@ -328,6 +336,7 @@ function cardHtml(p, i) {
     <div class="tc-img">${p[F.p.img] ? `<img src="${esc(p[F.p.img])}" alt="${esc(p[F.p.nome])}" loading="lazy">` : "✦"}</div>
     <h3>${esc(p[F.p.nome])}</h3>     <div class="sub">${esc(p[F.p.categoria] || "")}${p[F.p.caixa] ? ", caixa com " + p[F.p.caixa] + " un." : ""}</div>
      <div class="tc-price">${brl(priceBox(p))}<span style="font-size:13px;font-weight:400;color:var(--mute)"> a caixa</span></div>
+     ${p[F.p.pdv] ? `<div class="tc-pvdsug">Preço sugerido R$ ${brl(num(p[F.p.pdv]) / boxSize(p))}/un</div>` : ""}
     <div class="tc-lim">${p[F.p.status] === "A CONFIRMAR" ? "A confirmar" : lim <= 0 ? "Cota esgotada" : lim === Infinity ? "Sem limite de quantidade" : `Você ainda pode levar <b>${lim}</b> caixas`}</div>
     <div class="tc-step"><button data-act="sub" data-id="${esc(id)}" ${q <= 0 ? "disabled" : ""} aria-label="menos">−</button><b>${q}</b><button data-act="add" data-id="${esc(id)}" ${off || q + 1 > lim ? "disabled" : ""} aria-label="mais">+</button></div></article>`;
 }
@@ -338,15 +347,15 @@ function viewLoja() {
   const chips = [
     { label: "Todas", key: "" },
     { label: "Baralho", key: "baralho" },
-    { label: "Pokémon", key: "pokémon" },
+    { label: \"pokemon\", key: \"pokemon\" },
     { label: "Jogos", key: "jogos" },
     { label: "Lorcana", key: "lorcana" },
   ];
   const shown = S.catalogo.filter((p) => {
-    const q = S.q.trim().toLowerCase();
-    const cat = (p[F.p.categoria] || "").toLowerCase();
-    const matchQ = !q || (p[F.p.nome] + " " + p[F.p.codigo]).toLowerCase().includes(q);
-    const matchC = !S.cat || cat.includes(S.cat.toLowerCase());
+    const qn = norm(S.q);
+    const cat = norm(p[F.p.categoria]);
+    const matchQ = !qn || norm(p[F.p.nome] + " " + p[F.p.codigo]).includes(qn);
+    const matchC = !S.cat || cat.includes(norm(S.cat));
     return matchQ && matchC;
   });
   return `<div class="tc-shop"><div class="tc-hello"><h2>Olá, ${esc(S.cliente?.[F.c.nome] || S.cliente?.nome || "bem-vindo")}</h2>
@@ -408,8 +417,18 @@ const A = {
   },
   newC() { S.modal = { type: "c", data: {} }; render(); },
   editC(el) { S.modal = { type: "c", data: byId(S.clientes, F.c.id, el.dataset.id) }; render(); },
-  closeM() { S.modal = null; render(); },
-  closeBg(el, e) { if (e.target === el) A.closeM(); },
+   closeM() { S.modal = null; render(); },
+   closeBg(el, e) { if (e.target === el) A.closeM(); },
+   clearQuotas() {
+     const cli = byId(S.clientes, F.c.id, S.cotaCliente);
+     S.modal = { type: "clearQuotas", data: { cliente_id: S.cotaCliente, cliente_nome: cli ? cli[F.c.nome] : "" } };
+     render();
+   },
+   async confirmClearQuotas(el) {
+     const clienteId = el.dataset.id;
+     await fj(API.quotas, { method: "DELETE", body: { cliente_id: clienteId, all: true } });
+     S.modal = null; S.cotas = {}; await loadCotas(); toast("Todas as cotas limpas");
+   },
   async saveP() {
     const v = readModal(), d = S.modal.data || {}, file = $(".tc-modal [name=file]").files[0];
     let img = d[F.p.img] || "";
@@ -552,3 +571,6 @@ async function boot() {
 }
 window.addEventListener("hashchange", boot);
 boot();
+
+
+
