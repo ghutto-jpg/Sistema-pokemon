@@ -160,6 +160,9 @@ begin
 
     if v_cota is not null then
       v_restante := v_cota - v_consumido;
+      if v_restante <= 0 then
+        raise exception 'Produto sem cota disponível';
+      end if;
       if v_restante < v_item.quantidade then
         raise exception 'Quantidade acima da cota disponível para o produto';
       end if;
