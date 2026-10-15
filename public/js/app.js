@@ -519,6 +519,8 @@ const A = {
   clearCart() { S.cart = {}; S.cartOpen = false; render(); },
 async finish() {
     const itens = Object.entries(S.cart).map(([id, quantidade]) => ({ produto_id: Number(id), quantidade }));
+    console.log('[finish] itens no carrinho:', itens);
+    if (!itens.length) return toast("Seu carrinho está vazio");
     try {
       const r = await fj(API.order, { method: "POST", body: { itens } });
       const c = S.cliente || {};
@@ -538,6 +540,7 @@ async finish() {
       await loadCatalog().catch(() => {});
       render();
     } catch (err) {
+      console.log('[finish] erro:', err);
       toast(err.message || "Erro ao finalizar pedido");
     }
   },

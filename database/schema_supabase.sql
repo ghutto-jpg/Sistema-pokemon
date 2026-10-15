@@ -17,7 +17,7 @@ create table if not exists produtos (
   caixa_master int not null default 1,
   preco_caixa_master numeric(12,2) not null default 0,
   pdv_sugerido numeric(12,2) not null default 0,
-  status text not null default 'DISPONíEL' check (status in ('DISPONíEL','A CONFIRMAR','INDISPONíEL')),
+  status text not null default 'DISPONíVEL' check (status in ('DISPONíVEL','A CONFIRMAR','INDISPONíVEL')),
   imagem text,
   ativo boolean not null default true,
   criado_em timestamptz default now()
@@ -136,7 +136,7 @@ begin
       raise exception 'Produto inativo';
     end if;
 
-    if v_produto.status = 'INDISPONíEL' then
+    if v_produto.status = 'INDISPONíVEL' then
       raise exception 'Produto indisponível';
     end if;
 
