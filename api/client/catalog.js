@@ -11,7 +11,7 @@ export default async function handler(req, res) {
   try {
     const clienteId = sessao.cliente_id;
 
-    const [cli, prod, ped, cfg, cot] = await Promise.all([
+    const [cli, prod, ped, cfg] = await Promise.all([
       supabaseAdmin
         .from('clientes')
         .select('id, cnpj, nome_fantasia, desconto, ativo, prazo_pagamento, tipo_loja_id')
@@ -20,13 +20,18 @@ export default async function handler(req, res) {
       supabaseAdmin.from('produtos').select('*').eq('ativo', true).neq('status', 'INDISPONÍVEL').order('nome'),
       supabaseAdmin.from('pedidos').select('id, criado_em').eq('cliente_id', clienteId),
       supabaseAdmin.from('configuracoes').select('chave, valor'),
-      supabaseAdmin.from('cotas').select('produto_id, quantidade, ultimo_reset').eq('tipo_loja_id', cli.data?.tipo_loja_id),
     ]);
 
     if (!cli || !cli.data?.ativo) return res.status(401).json({ ok: false, error: 'Cliente não autorizado' });
 
     // Get client's store type for quota lookup
     const tipoLojaId = cli.data.tipo_loja_id;
+
+    // Get quotas with reset dates for this store type
+    const cot = await supabaseAdmin
+      .from('cotas')
+      .select('produto_id, quantidade, ultimo_reset')
+      .eq('tipo_loja_id', tipoLojaId);
 
     // Build map of reset dates by product
     const resetsMap = new Map();
