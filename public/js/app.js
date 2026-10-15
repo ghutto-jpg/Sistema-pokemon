@@ -249,7 +249,7 @@ function tCotas() {
     const usado = tem ? c.usado : 0;
     const restante = tem ? c.restante : null;
     return `<div class="tc-quota"><div><b>${esc(p[F.p.nome])}</b><small> ${esc(p[F.p.codigo])}</small>${tem ? ` <span style="color:var(--mute);font-size:12px">Cota total: ${total} | Usado: ${usado} | Restam: ${restante} caixas</span>` : '<span style="color:var(--hot);font-size:12px"> Sem cota definida (sem limite)</span>'}</div>
-       <input class="tc-in" type="number" min="0" placeholder="sem limite" data-quota="${esc(pid)}" value="${tem ? esc(total) : ""}" title="Digite a COTA TOTAL (caixas permitidas por cliente desse tipo). Vazio = sem limite, 0 = bloqueado.">
+       <input class="tc-in" type="number" min="0" placeholder="sem limite" data-quota="${esc(pid)}" value="${tem ? esc(total) : ""}" title="Digite a quantidade a ADICIONAR à cota existente (caixas por cliente desse tipo). Vazio = sem limite, 0 = bloqueado.">
     </div>`;
    }).join("") : `<div class="tc-empty">Escolha um tipo de loja para definir a cota por produto. O campo é a COTA TOTAL de caixas que cada cliente desse tipo pode comprar (vitalício, sem prazo): vazio = sem limite, 0 = bloqueado.</div>`;
   return `<div class="tc-bar"><select class="tc-sel" style="max-width:340px" data-bind="cotaTipoLoja">${opts}</select>${S.cotaTipoLoja ? `<button class="tc-btn danger sm" data-act="clearQuotas" style="margin-left:auto">Limpar cotas</button>` : ""}</div>${lista}`;
