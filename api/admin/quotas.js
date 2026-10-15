@@ -70,7 +70,10 @@ export default async function handler(req, res) {
     }
 
     const body = req.body || {};
-    const { tipo_loja_id, produto_id } = body;
+    const query = req.query || {};
+    const tipo_loja_id = body.tipo_loja_id ?? query.tipo_loja_id;
+    const produto_id = body.produto_id ?? query.produto_id;
+    const all = body.all ?? query.all;
 
     if (req.method === 'PUT') {
       if (!tipo_loja_id || !produto_id) return res.status(400).json({ ok: false, error: 'required' });
@@ -98,7 +101,7 @@ export default async function handler(req, res) {
         return res.json({ ok: true });
       }
 
-      if (tipo_loja_id && body.all === true) {
+      if (tipo_loja_id && all === true) {
         const { error } = await supabaseAdmin
           .from('cotas')
           .delete()

@@ -463,7 +463,7 @@ const A = {
     },
     async confirmClearQuotas(el) {
       const tipoLojaId = el.dataset.id;
-      await fj(API.quotas, { method: "DELETE", body: { tipo_loja_id: tipoLojaId, all: true } });
+      await fj(API.quotas + "?tipo_loja_id=" + encodeURIComponent(tipoLojaId) + "&all=true", { method: "DELETE" });
       S.modal = null; S.cotas = {}; await loadCotas(); toast("Todas as cotas limpas");
     },
   async saveP() {
@@ -568,7 +568,7 @@ document.addEventListener("change", async (e) => {
     if (t.dataset.quota) {
       const pid = t.dataset.quota;
       if (t.value === "") {
-        await fj(API.quotas, { method: "DELETE", body: { tipo_loja_id: S.cotaTipoLoja, produto_id: pid } });
+        await fj(API.quotas + "?tipo_loja_id=" + encodeURIComponent(S.cotaTipoLoja) + "&produto_id=" + encodeURIComponent(pid), { method: "DELETE" });
         return toast("Cota removida: sem limite");
       }
       const quantidadeTotal = num(t.value);
