@@ -155,9 +155,7 @@ begin
     into v_consumido
     from pedido_itens pi
     join pedidos p on p.id = pi.pedido_id
-    where p.cliente_id in (
-      select id from clientes where tipo_loja_id = v_cliente.tipo_loja_id
-    )
+    where p.cliente_id = p_cliente_id
     and pi.produto_id = v_produto.id;
 
     if v_cota is not null then
