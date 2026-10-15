@@ -82,7 +82,7 @@ async function fj(url, opts = {}) {
    3. Estado
    ===================================================================== */
 const S = {
-  area: "cliente", admin: false, tab: "produtos", q: "", modal: null, cat: "",
+  area: "cliente", admin: false, tab: "produtos", q: "", modal: null, cat: "", erroPedido: null,
   produtos: [], clientes: [], config: [], cotas: {}, cotaTipoLoja: "", imp: { nome: "", rows: [], file: "" },
   cliente: null, catalogo: [], cart: {}, cartOpen: false, vendedor: "", done: null,
 };
@@ -398,11 +398,13 @@ function viewLoja() {
    ===================================================================== */
 const doneHtml = () => `<div class="tc-modal-bg" data-act="closeDone"><div class="tc-modal" role="dialog" aria-modal="true" style="text-align:center"><h3>Pedido #${esc(S.done.id)} registrado</h3><p style="color:var(--mute)">${S.done.url ? "Agora envie o resumo para o vendedor combinar entrega e pagamento." : "O WhatsApp do vendedor ainda não foi configurado. Avise o vendedor sobre o pedido."}</p><div class="tc-foot" style="justify-content:center">${S.done.url ? `<a class="tc-btn" href="${esc(S.done.url)}" target="_blank" rel="noopener" style="text-decoration:none">Abrir WhatsApp</a>` : ""}<button class="tc-btn ghost" data-act="closeDone">Fechar</button></div></div></div>`;
 
+const erroPedidoHtml = () => `<div class="tc-modal-bg" data-act="closeErroPedido"><div class="tc-modal" role="dialog" aria-modal="true" style="text-align:center"><h3 style="color:var(--hot)">Produto sem estoque suficiente</h3><p style="color:var(--mute);margin-bottom:16px">${esc(S.erroPedido)}</p><div class="tc-foot" style="justify-content:center"><button class="tc-btn ghost" data-act="closeErroPedido">Entendi</button></div></div></div>`;
+
 function render() {
   const f = document.activeElement, key = f && f.dataset && f.dataset.bind, pos = f && f.selectionStart;
   let html;
   if (S.area === "admin") html = S.admin ? viewAdmin() : viewAdminLogin();
-  else html = (S.cliente ? viewLoja() : viewClienteLogin()) + (S.done ? doneHtml() : "");
+  else html = (S.cliente ? viewLoja() : viewClienteLogin()) + (S.done ? doneHtml() : "") + (S.erroPedido ? erroPedidoHtml() : "");
   $("#app").innerHTML = html;
   if (key) { const el = $(`[data-bind="${key}"]`); if (el) { el.focus(); try { el.setSelectionRange(pos, pos); } catch {} } }
 }
@@ -517,6 +519,7 @@ const A = {
   openCart() { S.cartOpen = true; render(); },
   closeCart() { S.cartOpen = false; render(); },
   clearCart() { S.cart = {}; S.cartOpen = false; render(); },
+  closeErroPedido() { S.erroPedido = null; render(); },
 async finish() {
     const itens = Object.entries(S.cart).map(([id, quantidade]) => ({ produto_id: Number(id), quantidade }));
     console.log('[finish] itens no carrinho:', itens);
@@ -541,7 +544,8 @@ async finish() {
       render();
     } catch (err) {
       console.log('[finish] erro:', err);
-      toast(err.message || "Erro ao finalizar pedido");
+      S.erroPedido = err.message || "Erro ao finalizar pedido";
+      render();
     }
   },
   closeDone(el, e) { if (e.target === el || el.tagName === "BUTTON") { S.done = null; render(); } },
@@ -597,7 +601,7 @@ document.addEventListener("change", async (e) => {
 });
 
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") { if (S.modal) A.closeM(); else if (S.cartOpen) A.closeCart(); }
+  if (e.key === "Escape") { if (S.modal) A.closeM(); else if (S.cartOpen) A.closeCart(); else if (S.erroPedido) A.closeErroPedido(); }
   if (e.key === "Enter" && (e.target.id === "u" || e.target.id === "p")) A.login();
   if (e.key === "Enter" && e.target.id === "cnpj") A.cliLogin();
 });
