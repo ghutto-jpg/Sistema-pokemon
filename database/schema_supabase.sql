@@ -75,7 +75,7 @@ on conflict (nome) do nothing;
 insert into configuracoes (chave, valor) values ('whatsapp_vendedor','')
 on conflict (chave) do nothing;
 
--- Cliente de teste (ajuste CNPJ e tipo_loja_id conforme necess·rio)
+-- Cliente de teste (ajuste CNPJ e tipo_loja_id conforme necess√°rio)
 insert into clientes (cnpj, nome_fantasia, tipo_loja_id, desconto, ativo) values
   ('12345678000195', 'Loja Teste E-commerce', 1, 10, true)
 on conflict (cnpj) do nothing;
@@ -98,7 +98,7 @@ declare
   v_preco_unit numeric(12,2);
 begin
   if jsonb_typeof(p_itens) <> 'array' or jsonb_array_length(p_itens) = 0 then
-    raise exception 'Itens inv·lidos';
+    raise exception 'Itens inv√°lidos';
   end if;
 
   select id, ativo, desconto, tipo_loja_id
@@ -108,7 +108,7 @@ begin
   for update;
 
   if not found then
-    raise exception 'Cliente n„o encontrado';
+    raise exception 'Cliente n√£o encontrado';
   end if;
 
   if v_cliente.ativo is false then
@@ -128,7 +128,7 @@ begin
     where id = v_item.produto_id;
 
     if not found then
-      raise exception 'Produto n„o encontrado';
+      raise exception 'Produto n√£o encontrado';
     end if;
 
     if v_produto.ativo is false then
@@ -136,7 +136,7 @@ begin
     end if;
 
     if v_produto.status = 'INDISPON√≠EL' then
-      raise exception 'Produto indisponÌvel';
+      raise exception 'Produto indispon√≠vel';
     end if;
 
     select quantidade into v_cota
@@ -162,7 +162,7 @@ begin
     if v_cota is not null then
       v_restante := v_cota - v_consumido;
       if v_restante < v_item.quantidade then
-        raise exception 'Quantidade acima da cota disponÌvel para o produto';
+        raise exception 'Quantidade acima da cota dispon√≠vel para o produto';
       end if;
     end if;
 

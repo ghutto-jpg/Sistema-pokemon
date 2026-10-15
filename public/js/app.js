@@ -1,7 +1,7 @@
 import { toast, brl, esc } from "./utils.js";
 
 /* =====================================================================
-   1. AJUSTES. Se alguma coisa vier vazia ou errada, mexa sÛ aqui.
+   1. AJUSTES. Se alguma coisa vier vazia ou errada, mexa s√≥ aqui.
    ===================================================================== */
 const API = {
   adminAuth: "/api/admin/auth",
@@ -16,12 +16,12 @@ const API = {
   order: "/api/client/order",
 };
 const UPDATE_METHOD = "PUT"; // troque para "PATCH" se sua API usar PATCH
-// Tipos de loja: iguais aos da tabela tipos_loja do banco. Se mudar l·, mude aqui.
+// Tipos de loja: iguais aos da tabela tipos_loja do banco. Se mudar l√°, mude aqui.
 const TIPOS = [
   { id: 1, nome: "E-commerce", desc: 10 }, { id: 2, nome: "Varejo", desc: 20 }, { id: 3, nome: "Liga", desc: 20 },
   { id: 4, nome: "Clube", desc: 23 }, { id: 5, nome: "Hobby Store", desc: 20 }, { id: 6, nome: "Atacado", desc: 28 },
 ];
-const STATUS = ["DISPONÕVEL", "A CONFIRMAR", "INDISPONÕVEL"];
+const STATUS = ["DISPON√çVEL", "A CONFIRMAR", "INDISPON√çVEL"];
 const F = {
   p: { id: "id", codigo: "codigo", nome: "nome", categoria: "categoria", caixa: "caixa_master", preco: "preco_caixa_master", pdv: "pdv_sugerido", status: "status", ativo: "ativo", img: "imagem" },
   c: { id: "id", cnpj: "cnpj", nome: "nome_fantasia", tipo: "tipo_loja_id", desc: "desconto", prazo: "prazo_pagamento", ativo: "ativo" },
@@ -34,7 +34,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const num = (v) => Number(String(v).replace(",", ".")) || 0;
 const digits = (v) => String(v || "").replace(/\D/g, "");
 
-// Converte valor para n˙mero, tratando R$ e vÌrgula
+// Converte valor para n√∫mero, tratando R$ e v√≠rgula
 function toFloat(v) {
   if (v === null || v === undefined || v === "" || v === "-") return 0;
   if (typeof v === "number") return v;
@@ -43,22 +43,22 @@ function toFloat(v) {
   return parseFloat(s) || 0;
 }
 
-// Converte "24 D˙zias" ? 288, "1 d˙zia" ? 12, "03 D˙zias" ? 36
+// Converte "24 D√∫zias" ? 288, "1 d√∫zia" ? 12, "03 D√∫zias" ? 36
 function parseCaixaMaster(v) {
   if (!v) return 1;
-  const s = String(v).toLowerCase().replace(/d˙zias?/g, "").replace(/[^0-9]/g, "").trim();
+  const s = String(v).toLowerCase().replace(/d√∫zias?/g, "").replace(/[^0-9]/g, "").trim();
   const n = parseInt(s) || 1;
-  return String(v).toLowerCase().includes("d˙zia") ? n * 12 : n;
+  return String(v).toLowerCase().includes("d√∫zia") ? n * 12 : n;
 }
 const maskCnpj = (v) => digits(v).slice(0, 14).replace(/^(\d{2})(\d)/, "$1.$2").replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3").replace(/\.(\d{3})(\d)/, ".$1/$2").replace(/(\d{4})(\d)/, "$1-$2");
 const list = (d) => (Array.isArray(d) ? d : (d && (d.items || d.data || d.rows || d.produtos || d.clientes || d.products || d.clients || d.cotas || d.quotas)) || []);
 
-// LÍ a imagem escolhida e devolve { name, type, data } (data = dataURL em base64) para a API de upload
+// L√™ a imagem escolhida e devolve { name, type, data } (data = dataURL em base64) para a API de upload
 const fileToJson = (f) => new Promise((ok, no) => {
   if (f.size > 1024 * 1024) return no(new Error("Imagem maior que 1MB. Reduza para cerca de 600 x 600 px."));
   const r = new FileReader();
   r.onload = () => ok({ name: f.name, type: f.type, data: r.result });
-  r.onerror = () => no(new Error("N„o consegui ler a imagem"));
+  r.onerror = () => no(new Error("N√£o consegui ler a imagem"));
   r.readAsDataURL(f);
 });
 
@@ -88,7 +88,7 @@ const S = {
 };
 
 /* =====================================================================
-   4. Estilos (injetados aqui, n„o depende do style.css)
+   4. Estilos (injetados aqui, n√£o depende do style.css)
    ===================================================================== */
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&family=Instrument+Sans:wght@400;500;600&display=swap');
@@ -206,15 +206,15 @@ const sw = (on, act, id) => `<button class="tc-sw ${on ? "on" : ""}" data-act="$
 
 function viewAdminLogin() {
   return `<div class="tc-login"><div class="tc-panel"><h1>Painel</h1><p>Entre para gerenciar produtos, clientes e cotas.</p>
-  <label class="tc-lab" for="u">Usu·rio</label><input class="tc-in" id="u" autocomplete="username">
+  <label class="tc-lab" for="u">Usu√°rio</label><input class="tc-in" id="u" autocomplete="username">
   <label class="tc-lab" for="p">Senha</label><input class="tc-in" id="p" type="password" autocomplete="current-password">
   <p class="tc-err" id="err"></p><button class="tc-btn" style="width:100%" data-act="login">Entrar</button></div></div>`;
 }
 
 function viewAdmin() {
-  const tabs = { produtos: "Produtos", clientes: "Clientes", cotas: "Cotas", importar: "Importar produtos", config: "ConfiguraÁıes" };
+  const tabs = { produtos: "Produtos", clientes: "Clientes", cotas: "Cotas", importar: "Importar produtos", config: "Configura√ß√µes" };
   const body = { produtos: tProdutos, clientes: tClientes, cotas: tCotas, importar: tImportar, config: tConfig }[S.tab]();
-  return `<div class="tc-top"><h2>Cat·logo</h2><button class="tc-btn ghost sm" data-act="logout">Sair</button></div>
+  return `<div class="tc-top"><h2>Cat√°logo</h2><button class="tc-btn ghost sm" data-act="logout">Sair</button></div>
   <div class="tc-tabs">${Object.entries(tabs).map(([k, v]) => `<button class="${S.tab === k ? "on" : ""}" data-act="tab" data-id="${k}">${v}</button>`).join("")}</div>
   <div class="tc-main"><div class="tc-body">${body}</div></div>${modalHtml()}`;
 }
@@ -222,10 +222,10 @@ function viewAdmin() {
 function tProdutos() {
   const q = S.q.toLowerCase();
   const rows = S.produtos.filter((p) => (p[F.p.nome] + " " + p[F.p.codigo]).toLowerCase().includes(q));
-  return `<div class="tc-bar"><input class="tc-in" placeholder="Buscar por nome ou cÛdigo" data-bind="q" value="${esc(S.q)}"><button class="tc-btn" data-act="newP">Novo produto</button></div>` +
+  return `<div class="tc-bar"><input class="tc-in" placeholder="Buscar por nome ou c√≥digo" data-bind="q" value="${esc(S.q)}"><button class="tc-btn" data-act="newP">Novo produto</button></div>` +
     (rows.length ? rows.map((p) => `<div class="tc-row">
       ${p[F.p.img] ? `<img class="tc-th" src="${esc(p[F.p.img])}" alt="">` : `<div class="tc-th">?</div>`}
-      <div><b>${esc(p[F.p.nome])}</b><small>${esc(p[F.p.codigo])} </small><span class="tc-tag">${esc(p[F.p.categoria] || "sem categoria")}</span><span class="tc-tag">${esc(p[F.p.status] || "DISPONÕVEL")}</span><small>${brl(num(p[F.p.preco]))}</small></div>
+      <div><b>${esc(p[F.p.nome])}</b><small>${esc(p[F.p.codigo])} </small><span class="tc-tag">${esc(p[F.p.categoria] || "sem categoria")}</span><span class="tc-tag">${esc(p[F.p.status] || "DISPON√çVEL")}</span><small>${brl(num(p[F.p.preco]))}</small></div>
       <div class="tc-act">${sw(p[F.p.ativo], "togP", p[F.p.id])}<button class="tc-btn ghost sm" data-act="editP" data-id="${esc(p[F.p.id])}">Editar</button><button class="tc-btn danger sm" data-act="confirmDelP" data-id="${esc(p[F.p.id])}">Excluir</button></div></div>`).join("")
       : `<div class="tc-empty">Nenhum produto ainda. Clique em "Novo produto" ou use a aba Importar.</div>`);
 }
@@ -235,7 +235,7 @@ function tClientes() {
   const rows = S.clientes.filter((c) => (c[F.c.nome] + " " + c[F.c.cnpj]).toLowerCase().includes(q));
   return `<div class="tc-bar"><input class="tc-in" placeholder="Buscar por nome ou CNPJ" data-bind="q" value="${esc(S.q)}"><button class="tc-btn" data-act="newC">Novo cliente</button></div>` +
     (rows.length ? rows.map((c) => `<div class="tc-row cli"><div><b>${esc(c[F.c.nome])}</b><small>${esc(maskCnpj(c[F.c.cnpj]))} </small><span class="tc-tag">${esc(c.tipos_loja?.nome || "sem tipo")}</span><span class="tc-tag">desconto ${esc(c[F.c.desc] || 0)}%</span></div>
-      <div class="tc-act">${sw(c[F.c.ativo], "togC", c[F.c.id])}<button class="tc-btn ghost sm" data-act="editC" data-id="${esc(c[F.c.id])}">Editar</button></div></div>`).join("")
+      <div class="tc-act">${sw(c[F.c.ativo], "togC", c[F.c.id])}<button class="tc-btn ghost sm" data-act="editC" data-id="${esc(c[F.c.id])}">Editar</button><button class="tc-btn danger sm" data-act="confirmDelC" data-id="${esc(c[F.c.id])}" data-nome="${esc(c[F.c.nome])}">Excluir</button></div></div>`).join("")
       : `<div class="tc-empty">Nenhum cliente cadastrado ainda.</div>`);
 }
 
@@ -249,9 +249,9 @@ function tCotas() {
     const usado = tem ? c.usado : 0;
     const restante = tem ? c.restante : null;
     return `<div class="tc-quota"><div><b>${esc(p[F.p.nome])}</b><small> ${esc(p[F.p.codigo])}</small>${tem ? ` <span style="color:var(--mute);font-size:12px">Cota total: ${total} | Usado: ${usado} | Restam: ${restante} caixas</span>` : '<span style="color:var(--hot);font-size:12px"> Sem cota definida (sem limite)</span>'}</div>
-       <input class="tc-in" type="number" min="0" placeholder="sem limite" data-quota="${esc(pid)}" value="${tem ? esc(total) : ""}" title="Digite a quantidade a ADICIONAR ‡ cota existente (caixas por cliente desse tipo). Vazio = sem limite, 0 = bloqueado.">
+       <input class="tc-in" type="number" min="0" placeholder="sem limite" data-quota="${esc(pid)}" value="${tem ? esc(total) : ""}" title="Digite a COTA TOTAL (caixas permitidas por cliente desse tipo). Vazio = sem limite, 0 = bloqueado.">
     </div>`;
-   }).join("") : `<div class="tc-empty">Escolha um tipo de loja para definir a cota por produto. O campo È a COTA TOTAL de caixas que cada cliente desse tipo pode comprar (vitalÌcio, sem prazo): vazio = sem limite, 0 = bloqueado.</div>`;
+   }).join("") : `<div class="tc-empty">Escolha um tipo de loja para definir a cota por produto. O campo √© a COTA TOTAL de caixas que cada cliente desse tipo pode comprar (vital√≠cio, sem prazo): vazio = sem limite, 0 = bloqueado.</div>`;
   return `<div class="tc-bar"><select class="tc-sel" style="max-width:340px" data-bind="cotaTipoLoja">${opts}</select>${S.cotaTipoLoja ? `<button class="tc-btn danger sm" data-act="clearQuotas" style="margin-left:auto">Limpar cotas</button>` : ""}</div>${lista}`;
 }
 
@@ -261,19 +261,19 @@ function tImportar() {
   const cols = r[0] ? Object.keys(r[0]).slice(0, 6) : [];
   let preview = '';
   if (r.length) {
-    preview = `<p style="margin-top:14px"><b>${esc(S.imp.nome)}</b> tem ${r.length} linhas. PrÈvia das primeiras:</p>
+    preview = `<p style="margin-top:14px"><b>${esc(S.imp.nome)}</b> tem ${r.length} linhas. Pr√©via das primeiras:</p>
     <div style="overflow:auto"><table class="tc-prev"><tr>${cols.map((c) => `<th>${esc(c)}</th>`).join("")}</tr>${r.slice(0, 5).map((x) => `<tr>${cols.map((c) => `<td>${esc(x[c])}</td>`).join("")}</tr>`).join("")}</table></div>`;
   } else if (hasFile) {
-    preview = `<p style="margin-top:14px"><b>${esc(S.imp.nome)}</b> selecionado. O processamento ser· feito no servidor.</p>`;
+    preview = `<p style="margin-top:14px"><b>${esc(S.imp.nome)}</b> selecionado. O processamento ser√° feito no servidor.</p>`;
   }
-  return `<div class="tc-drop"><p>Envie uma planilha .xlsx ou .csv. Produtos com o mesmo cÛdigo s„o atualizados.</p><input type="file" accept=".xlsx,.xls,.csv" data-import></div>` +
+  return `<div class="tc-drop"><p>Envie uma planilha .xlsx ou .csv. Produtos com o mesmo c√≥digo s√£o atualizados.</p><input type="file" accept=".xlsx,.xls,.csv" data-import></div>` +
     (preview ? preview + `<div class="tc-foot"><button class="tc-btn" data-act="importGo">Importar</button></div>` : '');
 }
 
 function tConfig() {
   const rows = S.config.map((c, i) => `<div class="tc-2" style="margin-bottom:8px"><input class="tc-in" data-cfg="${i}" data-f="chave" value="${esc(c.chave ?? "")}" placeholder="chave (ex: whatsapp_vendedor)"><input class="tc-in" data-cfg="${i}" data-f="valor" value="${esc(c.valor ?? "")}" placeholder="Valor"></div>`).join("");
-  return `<p style="color:var(--mute);margin-top:0">Descontos por tipo de loja, WhatsApp do vendedor e outros ajustes.</p>${rows || `<div class="tc-empty">Nenhuma configuraÁ„o ainda.</div>`}
-  <div class="tc-foot"><button class="tc-btn ghost" data-act="addCfg">Adicionar linha</button><button class="tc-btn" data-act="saveCfg">Salvar configuraÁıes</button></div>`;
+  return `<p style="color:var(--mute);margin-top:0">Descontos por tipo de loja, WhatsApp do vendedor e outros ajustes.</p>${rows || `<div class="tc-empty">Nenhuma configura√ß√£o ainda.</div>`}
+  <div class="tc-foot"><button class="tc-btn ghost" data-act="addCfg">Adicionar linha</button><button class="tc-btn" data-act="saveCfg">Salvar configura√ß√µes</button></div>`;
 }
 
 function modalHtml() {
@@ -283,9 +283,9 @@ function modalHtml() {
   if (m.type === "p") {
     const p = F.p;
     inner = `<h3>${d[p.id] ? "Editar produto" : "Novo produto"}</h3>
-    <div class="tc-2"><div><label class="tc-lab">CÛdigo</label><input class="tc-in" name="codigo" value="${esc(d[p.codigo] ?? "")}"></div><div><label class="tc-lab">Categoria</label><input class="tc-in" name="categoria" value="${esc(d[p.categoria] ?? "")}"></div></div>
+    <div class="tc-2"><div><label class="tc-lab">C√≥digo</label><input class="tc-in" name="codigo" value="${esc(d[p.codigo] ?? "")}"></div><div><label class="tc-lab">Categoria</label><input class="tc-in" name="categoria" value="${esc(d[p.categoria] ?? "")}"></div></div>
     <label class="tc-lab">Nome</label><input class="tc-in" name="nome" value="${esc(d[p.nome] ?? "")}">
-    <div class="tc-2"><div><label class="tc-lab">Caixa master (unidades)</label><input class="tc-in" name="caixa" type="number" value="${esc(d[p.caixa] ?? "")}"></div><div><label class="tc-lab">PreÁo da caixa master</label><input class="tc-in" name="preco" value="${esc(d[p.preco] ?? "")}"></div></div>
+    <div class="tc-2"><div><label class="tc-lab">Caixa master (unidades)</label><input class="tc-in" name="caixa" type="number" value="${esc(d[p.caixa] ?? "")}"></div><div><label class="tc-lab">Pre√ßo da caixa master</label><input class="tc-in" name="preco" value="${esc(d[p.preco] ?? "")}"></div></div>
     <div class="tc-2"><div><label class="tc-lab">PDV sugerido</label><input class="tc-in" name="pdv" value="${esc(d[p.pdv] ?? "")}"></div><div><label class="tc-lab">Status</label><select class="tc-sel" name="status">${STATUS.map((s) => `<option ${(d[p.status] || STATUS[0]) === s ? "selected" : ""}>${s}</option>`).join("")}</select></div></div>
     <label class="tc-lab">Imagem (sugerido 600 x 600 px)</label><input class="tc-in" type="file" name="file" accept="image/*">
     <label class="tc-lab"><input type="checkbox" name="ativo" ${d[p.ativo] === false ? "" : "checked"}> Produto ativo</label>
@@ -293,13 +293,18 @@ function modalHtml() {
    } else if (m.type === "delP") {
     inner = `<h3>Excluir produto</h3>
     <p>Tem certeza que deseja excluir <b>${esc(d[F.p.nome])}</b> (${esc(d[F.p.codigo])})?</p>
-    <p style="color:var(--mute);font-size:13px">Esta aÁ„o n„o pode ser desfeita.</p>
+    <p style="color:var(--mute);font-size:13px">Esta a√ß√£o n√£o pode ser desfeita.</p>
     <div class="tc-foot"><button class="tc-btn ghost" data-act="closeM">Cancelar</button><button class="tc-btn danger" data-act="delP" data-id="${esc(d[F.p.id])}">Sim, excluir</button></div>`;
+  } else if (m.type === "delC") {
+    inner = `<h3>Excluir cliente</h3>
+    <p>Tem certeza que deseja excluir <b>${esc(d.nome)}</b> (${esc(d.cnpj)})?</p>
+    <p style="color:var(--mute);font-size:13px">Esta a√ß√£o n√£o pode ser desfeita.</p>
+    <div class="tc-foot"><button class="tc-btn ghost" data-act="closeM">Cancelar</button><button class="tc-btn danger" data-act="delC" data-id="${esc(d.id)}">Sim, excluir</button></div>`;
   } else if (m.type === "clearQuotas") {
       const tipoLojaNome = esc(m.tipo_loja_nome || "");
     inner = `<h3>Limpar cotas</h3>
       <p>Tem certeza que quer limpar <b>todas as cotas</b> do tipo de loja <b>${tipoLojaNome}</b>?</p>
-    <p style="color:var(--mute);font-size:13px">Esta aÁ„o remover· todas as cotas. N„o pode ser desfeita.</p>
+    <p style="color:var(--mute);font-size:13px">Esta a√ß√£o remover√° todas as cotas. N√£o pode ser desfeita.</p>
      <div class="tc-foot"><button class="tc-btn ghost" data-act="closeM">Cancelar</button><button class="tc-btn danger" data-act="confirmClearQuotas" data-id="${esc(m.tipo_loja_id)}">Sim, limpar</button></div>`;
   } else {
     const c = F.c;
@@ -308,16 +313,16 @@ function modalHtml() {
     <label class="tc-lab">Nome fantasia</label><input class="tc-in" name="nome" value="${esc(d[c.nome] ?? "")}">
     <div class="tc-2"><div><label class="tc-lab">Tipo de loja</label><select class="tc-sel" name="tipo"><option value="">Sem tipo</option>${TIPOS.map((t) => `<option value="${t.id}" ${Number(d[c.tipo]) === t.id ? "selected" : ""}>${t.nome}</option>`).join("")}</select></div>
     <div><label class="tc-lab">Desconto (%)</label><input class="tc-in" name="desc" type="number" min="0" max="100" value="${esc(d[c.desc] ?? 0)}"></div></div>
-    <label class="tc-lab">Prazo de pagamento</label><input class="tc-in" name="prazo_pagamento" value="${esc(d[c.prazo] ?? "")}" placeholder="Ex: 30 dias, ‡ vista, 15/30/45">
+    <label class="tc-lab">Prazo de pagamento</label><input class="tc-in" name="prazo_pagamento" value="${esc(d[c.prazo] ?? "")}" placeholder="Ex: 30 dias, √† vista, 15/30/45">
     <label class="tc-lab"><input type="checkbox" name="ativo" ${d[c.ativo] === false ? "" : "checked"}> Cliente ativo</label>
     <div class="tc-foot"><button class="tc-btn ghost" data-act="closeM">Cancelar</button><button class="tc-btn" data-act="saveC">Salvar cliente</button></div>`;
   }
   return `<div class="tc-modal-bg" data-act="closeBg"><div class="tc-modal" role="dialog" aria-modal="true">${inner}</div></div>`;
 }
 
-/* ---- ·rea do cliente ---- */
+/* ---- √°rea do cliente ---- */
 function viewClienteLogin() {
-  return `<div class="tc-login"><div class="tc-panel"><h1>Sua loja</h1><p>Digite o CNPJ para ver o que est· liberado para vocÍ.</p>
+  return `<div class="tc-login"><div class="tc-panel"><h1>Sua loja</h1><p>Digite o CNPJ para ver o que est√° liberado para voc√™.</p>
   <label class="tc-lab" for="cnpj">CNPJ</label><input class="tc-in" id="cnpj" inputmode="numeric" placeholder="00.000.000/0000-00" autocomplete="off">
   <p class="tc-err" id="err"></p><button class="tc-btn" style="width:100%" data-act="cliLogin">Entrar na loja</button></div></div>`;
 }
@@ -347,7 +352,7 @@ function cardHtml(p, i) {
     <h3>${esc(p[F.p.nome])}</h3>
     <div class="sub">${esc(p[F.p.categoria] || "")}${p[F.p.caixa] ? ", caixa com " + p[F.p.caixa] + " un." : ""}</div>
     <div class="tc-price">${brl(priceBox(p))}<span style="font-size:13px;font-weight:400;color:var(--mute)"> a caixa</span></div>
-    ${p[F.p.pdv] ? `<div class="tc-pvdsug">PreÁo sugerido R$ ${brl(num(p[F.p.pdv]))}/un</div>` : ""}
+    ${p[F.p.pdv] ? `<div class="tc-pvdsug">Pre√ßo sugerido R$ ${brl(num(p[F.p.pdv]))}/un</div>` : ""}
     <div class="tc-lim">${quotaInfo}</div>
     <div class="tc-step"><button data-act="sub" data-id="${esc(id)}" ${q <= 0 ? "disabled" : ""} aria-label="menos">-</button><b>${q}</b><button data-act="add" data-id="${esc(id)}" ${off || q + 1 > lim ? "disabled" : ""} aria-label="mais">+</button></div></article>`;
 }
@@ -363,7 +368,7 @@ function viewLoja() {
   const chips = [
     { label: "Todas", key: "", count: S.catalogo.length },
     { label: "Baralho", key: "baralho", count: countByCat["baralho"] || 0 },
-    { label: "PokÈmon", key: "pokemon", count: countByCat["pokemon"] || 0 },
+    { label: "Pok√©mon", key: "pokemon", count: countByCat["pokemon"] || 0 },
     { label: "Jogos", key: "jogos", count: countByCat["jogos"] || 0 },
     { label: "Lorcana", key: "lorcana", count: countByCat["lorcana"] || 0 },
   ];
@@ -374,23 +379,24 @@ function viewLoja() {
     const matchC = !S.cat || cat.includes(norm(S.cat));
     return matchQ && matchC;
   });
-  return `<div class="tc-shop"><div class="tc-hello"><h2>Ol·, ${esc(S.cliente?.[F.c.nome] || S.cliente?.nome || "bem-vindo")}</h2>
+  return `<div class="tc-shop"><div class="tc-hello"><h2>Ol√°, ${esc(S.cliente?.[F.c.nome] || S.cliente?.nome || "bem-vindo")}</h2>
     <button class="tc-btn ghost sm" data-act="cliLogout">Sair</button>
     <button class="tc-btn tc-cartbtn" data-act="openCart">Meu pedido${n ? `<i>${n}</i>` : ""}</button></div>
-    <div class="tc-filterbar"><input class="tc-in" placeholder="?? Buscar produto por nome ou cÛdigo" data-bind="q" value="${esc(S.q)}">
+    <div class="tc-filterbar"><input class="tc-in" placeholder="?? Buscar produto por nome ou c√≥digo" data-bind="q" value="${esc(S.q)}">
       <div class="tc-chips">${chips.map((c) => `<span class="tc-chip ${S.cat === c.key ? "on" : ""}" data-act="setCat" data-id="${esc(c.key)}">${esc(c.label)}${c.count ? ` (${c.count})` : ""}</span>`).join("")}</div></div>
     ${shown.length ? `<div class="tc-grid">${shown.map(cardHtml).join("")}</div>` : `<div class="tc-empty">Nenhum produto encontrado para os filtros selecionados.</div>`}</div>
     ${S.cartOpen ? `<div class="tc-drawer-bg" data-act="closeCart"></div><aside class="tc-drawer"><h3>Meu pedido</h3>
-      <div class="tc-lines">${lines || `<div class="tc-empty">Seu pedido est· vazio. Use o + nos produtos.</div>`}</div>
+      <div class="tc-lines">${lines || `<div class="tc-empty">Seu pedido est√° vazio. Use o + nos produtos.</div>`}</div>
       <div class="tc-total"><span>Total</span><span>${brl(cartTotal())}</span></div>
       <button class="tc-btn" data-act="finish" ${n ? "" : "disabled"}>Finalizar pelo WhatsApp</button>
+      <button class="tc-btn ghost" data-act="clearCart" style="margin-top:8px">Limpar carrinho</button>
       <button class="tc-btn ghost" style="margin-top:8px" data-act="closeCart">Continuar escolhendo</button></aside>` : ""}`;
 }
 
 /* =====================================================================
    7. Render
    ===================================================================== */
-const doneHtml = () => `<div class="tc-modal-bg" data-act="closeDone"><div class="tc-modal" role="dialog" aria-modal="true" style="text-align:center"><h3>Pedido #${esc(S.done.id)} registrado</h3><p style="color:var(--mute)">${S.done.url ? "Agora envie o resumo para o vendedor combinar entrega e pagamento." : "O WhatsApp do vendedor ainda n„o foi configurado. Avise o vendedor sobre o pedido."}</p><div class="tc-foot" style="justify-content:center">${S.done.url ? `<a class="tc-btn" href="${esc(S.done.url)}" target="_blank" rel="noopener" style="text-decoration:none">Abrir WhatsApp</a>` : ""}<button class="tc-btn ghost" data-act="closeDone">Fechar</button></div></div></div>`;
+const doneHtml = () => `<div class="tc-modal-bg" data-act="closeDone"><div class="tc-modal" role="dialog" aria-modal="true" style="text-align:center"><h3>Pedido #${esc(S.done.id)} registrado</h3><p style="color:var(--mute)">${S.done.url ? "Agora envie o resumo para o vendedor combinar entrega e pagamento." : "O WhatsApp do vendedor ainda n√£o foi configurado. Avise o vendedor sobre o pedido."}</p><div class="tc-foot" style="justify-content:center">${S.done.url ? `<a class="tc-btn" href="${esc(S.done.url)}" target="_blank" rel="noopener" style="text-decoration:none">Abrir WhatsApp</a>` : ""}<button class="tc-btn ghost" data-act="closeDone">Fechar</button></div></div></div>`;
 
 function render() {
   const f = document.activeElement, key = f && f.dataset && f.dataset.bind, pos = f && f.selectionStart;
@@ -402,7 +408,7 @@ function render() {
 }
 
 /* =====================================================================
-   8. AÁıes
+   8. A√ß√µes
    ===================================================================== */
 const readModal = () => Object.fromEntries([...document.querySelectorAll(".tc-modal [name]")].map((i) => [i.name, i.type === "checkbox" ? i.checked : i.value]));
 const byId = (arr, k, id) => arr.find((x) => String(x[k]) === String(id));
@@ -413,7 +419,7 @@ const A = {
     try {
       await fj(API.adminAuth + "?action=login", { method: "POST", body: { user: $("#u").value, pass: $("#p").value } });
       S.admin = true; await loadAdmin();
-    } catch (e) { err.textContent = e.message || "N„o foi possÌvel entrar."; }
+    } catch (e) { err.textContent = e.message || "N√£o foi poss√≠vel entrar."; }
   },
   async logout() { try { await fj(API.adminAuth + "?action=logout", { method: "POST" }); } catch {} S.admin = false; render(); },
   tab(el) { S.tab = el.dataset.id; S.q = ""; render(); },
@@ -425,10 +431,25 @@ const A = {
     console.log("delP called with:", el.dataset.id);
     try {
       await fj(API.products, { method: "DELETE", body: { [F.p.id]: el.dataset.id } });
-      S.modal = null; await loadAdmin(); toast("Produto excluÌdo");
+      S.modal = null; await loadAdmin(); toast("Produto exclu√≠do");
     } catch (err) {
       console.error("Delete failed:", err);
       toast(err.message || "Erro ao excluir");
+    }
+  },
+  async confirmDelC(el) {
+    const c = byId(S.clientes, F.c.id, el.dataset.id);
+    S.modal = { type: "delC", data: { id: c[F.c.id], nome: c[F.c.nome], cnpj: c[F.c.cnpj] } };
+    render();
+  },
+  async delC(el) {
+    const id = el.dataset.id;
+    try {
+      await fj(API.clients, { method: "DELETE", body: { id } });
+      S.modal = null; await loadAdmin(); toast("Cliente exclu√≠do");
+    } catch (err) {
+      console.error("Delete client failed:", err);
+      toast(err.message || "Erro ao excluir cliente");
     }
   },
   newC() { S.modal = { type: "c", data: {} }; render(); },
@@ -457,7 +478,7 @@ const A = {
   },
   async saveC() {
     const v = readModal(), d = S.modal.data || {}, cnpj = digits(v.cnpj);
-    if (cnpj.length !== 14) return toast("O CNPJ precisa ter 14 n˙meros");
+    if (cnpj.length !== 14) return toast("O CNPJ precisa ter 14 n√∫meros");
     const body = { [F.c.cnpj]: cnpj, [F.c.nome]: v.nome.trim(), [F.c.tipo]: v.tipo ? Number(v.tipo) : null, [F.c.desc]: num(v.desc), [F.c.prazo]: v.prazo_pagamento?.trim() || null, [F.c.ativo]: v.ativo };
     if (d[F.c.id]) body[F.c.id] = d[F.c.id];
     await fj(API.clients, { method: d[F.c.id] ? UPDATE_METHOD : "POST", body });
@@ -469,18 +490,18 @@ const A = {
     const body = S.imp.file ? { file: S.imp.file } : { rows: S.imp.rows };
     const r = await fj(API.import, { method: "POST", body });
     S.imp = { nome: "", rows: [], file: "" }; await loadAdmin();
-    const msg = r && r.ok ? `ImportaÁ„o: ${r.criados} novos, ${r.atualizados} atualizados, ${r.erros} com erro, ${r.categorias || 0} categorias` : (r?.error || "ImportaÁ„o concluÌda");
+    const msg = r && r.ok ? `Importa√ß√£o: ${r.criados} novos, ${r.atualizados} atualizados, ${r.erros} com erro, ${r.categorias || 0} categorias` : (r?.error || "Importa√ß√£o conclu√≠da");
     toast(msg);
   },
   addCfg() { S.config.push({ chave: "", valor: "" }); render(); },
-  async saveCfg() { await fj(API.settings, { method: UPDATE_METHOD, body: { configuracoes: S.config.filter((c) => c.chave) } }); toast("ConfiguraÁıes salvas"); },
+  async saveCfg() { await fj(API.settings, { method: UPDATE_METHOD, body: { configuracoes: S.config.filter((c) => c.chave) } }); toast("Configura√ß√µes salvas"); },
 
   /* ---- cliente ---- */
   async cliLogin() {
     const err = $("#err"), cnpj = digits($("#cnpj").value);
-    if (cnpj.length !== 14) { err.textContent = "O CNPJ precisa ter 14 n˙meros."; return; }
+    if (cnpj.length !== 14) { err.textContent = "O CNPJ precisa ter 14 n√∫meros."; return; }
     try { const r = await fj(API.clientLogin, { method: "POST", body: { cnpj } }); S.cliente = (r && r.cliente) || null; await loadCatalog(); render(); }
-    catch (e) { err.textContent = e.message || "CNPJ n„o encontrado ou desativado."; }
+    catch (e) { err.textContent = e.message || "CNPJ n√£o encontrado ou desativado."; }
   },
   async cliLogout() {
     try { await fj(API.clientLogin, { method: "DELETE" }); } catch {}
@@ -488,13 +509,14 @@ const A = {
   },
   add(el) {
     const id = el.dataset.id, p = byId(S.catalogo, F.p.id, id), q = S.cart[id] || 0;
-    if (q + 1 > limite(p)) return toast("VocÍ atingiu a cota deste produto");
+    if (q + 1 > limite(p)) return toast("Voc√™ atingiu a cota deste produto");
     S.cart[id] = q + 1; render();
     const b = $(".tc-cartbtn"); if (b) { b.classList.add("bump"); setTimeout(() => b.classList.remove("bump"), 400); }
   },
   sub(el) { const id = el.dataset.id, q = S.cart[id] || 0; S.cart[id] = Math.max(0, q - 1); if (!S.cart[id]) delete S.cart[id]; render(); },
   openCart() { S.cartOpen = true; render(); },
   closeCart() { S.cartOpen = false; render(); },
+  clearCart() { S.cart = {}; S.cartOpen = false; render(); },
 async finish() {
     const itens = Object.entries(S.cart).map(([id, quantidade]) => ({ produto_id: Number(id), quantidade }));
     const r = await fj(API.order, { method: "POST", body: { itens } });
@@ -507,7 +529,7 @@ async finish() {
       return `* ${p[F.p.codigo]} - ${p[F.p.nome]}\nCaixas Master: ${caixas}\nValor Caixa: ${brl(valorCaixa)}\nSubtotal: ${brl(subtotal)}`;
     }).join("\n\n");
 
-    const txt = `NOVO PEDIDO\n\nCliente: ${c.nome_fantasia || ""}\nCNPJ: ${maskCnpj(c.cnpj)}${c.prazo_pagamento ? `\nPrazo: ${c.prazo_pagamento}` : ""}\n\n${linhas}\n\nTOTAL: ${brl(cartTotal())}\n\nPedido sujeito ‡ confirmaÁ„o de disponibilidade`;
+    const txt = `NOVO PEDIDO\n\nCliente: ${c.nome_fantasia || ""}\nCNPJ: ${maskCnpj(c.cnpj)}${c.prazo_pagamento ? `\nPrazo: ${c.prazo_pagamento}` : ""}\n\n${linhas}\n\nTOTAL: ${brl(cartTotal())}\n\nPedido sujeito √† confirma√ß√£o de disponibilidade`;
 
     const fone = digits(S.vendedor);
     S.done = { id: r.pedido_id, url: fone ? `https://wa.me/${fone}?text=${encodeURIComponent(txt)}` : "" };
@@ -559,7 +581,7 @@ document.addEventListener("change", async (e) => {
       S.imp = { nome: file.name, rows: [], file: await new Promise((ok, no) => {
         const r = new FileReader();
         r.onload = () => ok(r.result);
-        r.onerror = () => no(new Error("N„o consegui ler a planilha"));
+        r.onerror = () => no(new Error("N√£o consegui ler a planilha"));
         r.readAsDataURL(file);
       })};
       render();
@@ -574,7 +596,7 @@ document.addEventListener("keydown", (e) => {
 });
 
 /* =====================================================================
-   9. InÌcio: loja do cliente em "/", painel sÛ em "/admin" (sem bot„o)
+   9. In√≠cio: loja do cliente em "/", painel s√≥ em "/admin" (sem bot√£o)
    ===================================================================== */
 const isAdminRoute = () => location.pathname.replace(/\/+$/, "") === "/admin" || location.hash === "#admin";
 async function boot() {

@@ -78,21 +78,12 @@ export default async function handler(req, res) {
       if (!Number.isFinite(caixas) || caixas < 0) {
         return res.status(400).json({ ok: false, error: 'quantidade >= 0' });
       }
-      // Buscar cota existente para somar (não substituir)
-      const { data: existente } = await supabaseAdmin
-        .from('cotas')
-        .select('quantidade')
-        .eq('tipo_loja_id', tipo_loja_id)
-        .eq('produto_id', produto_id)
-        .maybeSingle();
-      const quantidadeAtual = existente ? Number(existente.quantidade) : 0;
-      const novaQuantidade = quantidadeAtual + caixas;
       const { error } = await supabaseAdmin
         .from('cotas')
-        .upsert({ tipo_loja_id, produto_id, quantidade: novaQuantidade }, { onConflict: 'tipo_loja_id,produto_id' });
+        .upsert({ tipo_loja_id, produto_id, quantidade: caixas }, { onConflict: 'tipo_loja_id,produto_id' });
       if (error) return res.status(400).json({ ok: false, error: error.message });
       const usado = (await consumido(Number(tipo_loja_id))).get(produto_id) || 0;
-      return res.json({ ok: true, quantidade: novaQuantidade, usado, restante: Math.max(0, novaQuantidade - usado) });
+      return res.json({ ok: true, quantidade: caixas, usado, restante: Math.max(0, caixas - usado) });
     }
 
     if (req.method === 'DELETE') {

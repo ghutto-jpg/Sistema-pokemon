@@ -17,12 +17,12 @@ export default async function handler(req, res) {
         .select('id, cnpj, nome_fantasia, desconto, ativo, prazo_pagamento, tipo_loja_id')
         .eq('id', clienteId)
         .maybeSingle(),
-      supabaseAdmin.from('produtos').select('*').eq('ativo', true).neq('status', 'INDISPONÕVEL').order('nome'),
+      supabaseAdmin.from('produtos').select('*').eq('ativo', true).neq('status', 'INDISPON√çVEL').order('nome'),
       supabaseAdmin.from('pedidos').select('id').eq('cliente_id', clienteId),
       supabaseAdmin.from('configuracoes').select('chave, valor'),
     ]);
 
-    if (!cli || !cli.data?.ativo) return res.status(401).json({ ok: false, error: 'Cliente n„o autorizado' });
+    if (!cli || !cli.data?.ativo) return res.status(401).json({ ok: false, error: 'Cliente n√£o autorizado' });
 
     // Get client's store type for quota lookup
     const tipoLojaId = cli.data.tipo_loja_id;
