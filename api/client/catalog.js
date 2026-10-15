@@ -21,10 +21,10 @@ export default async function handler(req, res) {
       supabaseAdmin.from('configuracoes').select('chave, valor'),
     ]);
 
-    if (!cli || !cli.ativo) return res.status(401).json({ ok: false, error: 'Cliente não autorizado' });
+    if (!cli || !cli.data?.ativo) return res.status(401).json({ ok: false, error: 'Cliente não autorizado' });
 
     // Get client's store type for quota lookup
-    const tipoLojaId = cli.tipo_loja_id;
+    const tipoLojaId = cli.data.tipo_loja_id;
 
     const usado = new Map();
     const ids = (ped.data || []).map((p) => p.id);
@@ -50,7 +50,7 @@ export default async function handler(req, res) {
       .eq('tipo_loja_id', tipoLojaId);
 
     const cotaMap = new Map((cot.data || []).map((c) => [c.produto_id, c.quantidade]));
-    const dc = Number(cli.desconto) || 0;
+    const dc = Number(cli.data.desconto) || 0;
 
     const produtos = (prod.data || [])
       .filter((p) => cotaMap.get(p.id) !== 0)
@@ -64,7 +64,7 @@ export default async function handler(req, res) {
     const whatsapp = (cfg.data || []).find((c) => c.chave === 'whatsapp_vendedor')?.valor || '';
     return res.json({
       ok: true,
-      cliente: { id: cli.id, cnpj: cli.cnpj, nome_fantasia: cli.nome_fantasia, desconto: dc, prazo_pagamento: cli.prazo_pagamento },
+      cliente: { id: cli.data.id, cnpj: cli.data.cnpj, nome_fantasia: cli.data.nome_fantasia, desconto: dc, prazo_pagamento: cli.data.prazo_pagamento },
       produtos,
       whatsapp_vendedor: whatsapp,
     });
