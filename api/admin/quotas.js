@@ -51,6 +51,7 @@ async function consumido(tipo_loja_id, resetsMap = null) {
   }
   
   if (pedidoIds.length) {
+    const map = new Map();
     const { data: itens } = await supabaseAdmin
       .from('pedido_itens')
       .select('produto_id, quantidade')
