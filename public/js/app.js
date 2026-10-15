@@ -519,23 +519,27 @@ const A = {
   clearCart() { S.cart = {}; S.cartOpen = false; render(); },
 async finish() {
     const itens = Object.entries(S.cart).map(([id, quantidade]) => ({ produto_id: Number(id), quantidade }));
-    const r = await fj(API.order, { method: "POST", body: { itens } });
-    const c = S.cliente || {};
+    try {
+      const r = await fj(API.order, { method: "POST", body: { itens } });
+      const c = S.cliente || {};
 
-    const linhas = S.catalogo.filter((p) => S.cart[p[F.p.id]]).map((p) => {
-      const caixas = S.cart[p[F.p.id]];
-      const valorCaixa = num(p.preco_caixa_com_desconto);
-      const subtotal = caixas * valorCaixa;
-      return `* ${p[F.p.codigo]} - ${p[F.p.nome]}\nCaixas Master: ${caixas}\nValor Caixa: ${brl(valorCaixa)}\nSubtotal: ${brl(subtotal)}`;
-    }).join("\n\n");
+      const linhas = S.catalogo.filter((p) => S.cart[p[F.p.id]]).map((p) => {
+        const caixas = S.cart[p[F.p.id]];
+        const valorCaixa = num(p.preco_caixa_com_desconto);
+        const subtotal = caixas * valorCaixa;
+        return `* ${p[F.p.codigo]} - ${p[F.p.nome]}\nCaixas Master: ${caixas}\nValor Caixa: ${brl(valorCaixa)}\nSubtotal: ${brl(subtotal)}`;
+      }).join("\n\n");
 
-    const txt = `NOVO PEDIDO\n\nCliente: ${c.nome_fantasia || ""}\nCNPJ: ${maskCnpj(c.cnpj)}${c.prazo_pagamento ? `\nPrazo: ${c.prazo_pagamento}` : ""}\n\n${linhas}\n\nTOTAL: ${brl(cartTotal())}\n\nPedido sujeito à confirmação de disponibilidade`;
+      const txt = `NOVO PEDIDO\n\nCliente: ${c.nome_fantasia || ""}\nCNPJ: ${maskCnpj(c.cnpj)}${c.prazo_pagamento ? `\nPrazo: ${c.prazo_pagamento}` : ""}\n\n${linhas}\n\nTOTAL: ${brl(cartTotal())}\n\nPedido sujeito à confirmação de disponibilidade`;
 
-    const fone = digits(S.vendedor);
-    S.done = { id: r.pedido_id, url: fone ? `https://wa.me/${fone}?text=${encodeURIComponent(txt)}` : "" };
-    S.cart = {}; S.cartOpen = false;
-    await loadCatalog().catch(() => {});
-    render();
+      const fone = digits(S.vendedor);
+      S.done = { id: r.pedido_id, url: fone ? `https://wa.me/${fone}?text=${encodeURIComponent(txt)}` : "" };
+      S.cart = {}; S.cartOpen = false;
+      await loadCatalog().catch(() => {});
+      render();
+    } catch (err) {
+      toast(err.message || "Erro ao finalizar pedido");
+    }
   },
   closeDone(el, e) { if (e.target === el || el.tagName === "BUTTON") { S.done = null; render(); } },
 };
