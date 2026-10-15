@@ -1,17 +1,28 @@
 ﻿import { supabaseAdmin } from '../../lib/supabase-admin.js';
 import { requireAdmin } from '../../lib/auth-admin.js';
 
-async function consumido(cliente_id) {
-  const { data: pedidos } = await supabaseAdmin.from('pedidos').select('id').eq('cliente_id', cliente_id);
-  const ids = (pedidos || []).map((p) => p.id);
+async function consumido(tipo_loja_id) {
+  // Get all clients of this store type
+  const { data: clientes } = await supabaseAdmin.from('clientes').select('id').eq('tipo_loja_id', tipo_loja_id);
+  const clienteIds = (clientes || []).map((c) => c.id);
+  
+  if (!clienteIds.length) {
+    return new Map(); // Return empty map if no clients of this type
+  }
+  
+  // Get all orders for these clients
+  const { data: pedidos } = await supabaseAdmin.from('pedidos').select('id').in('cliente_id', clienteIds);
+  const pedidoIds = (pedidos || []).map((p) => p.id);
   const map = new Map();
-  if (ids.length) {
+  
+  if (pedidoIds.length) {
     const { data: itens } = await supabaseAdmin
       .from('pedido_itens')
       .select('produto_id, quantidade')
-      .in('pedido_id', ids);
+      .in('pedido_id', pedidoIds);
     (itens || []).forEach((i) => map.set(i.produto_id, (map.get(i.produto_id) || 0) + Number(i.quantidade)));
   }
+  
   // Converter unidades para caixas
   const boxMap = new Map();
   const { data: prods } = await supabaseAdmin.from('produtos').select('id, caixa_master');
@@ -29,16 +40,16 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      const { cliente_id } = req.query || {};
-      if (!cliente_id) {
+      const { tipo_loja_id } = req.query || {};
+      if (!tipo_loja_id) {
         const { data, error } = await supabaseAdmin.from('cotas').select('*');
         if (error) return res.status(500).json({ ok: false, error: error.message });
         return res.json({ ok: true, data });
       }
       const [prod, cot, usadoMap] = await Promise.all([
         supabaseAdmin.from('produtos').select('id, codigo, nome, caixa_master').order('nome'),
-        supabaseAdmin.from('cotas').select('produto_id, quantidade').eq('cliente_id', cliente_id),
-        consumido(cliente_id),
+        supabaseAdmin.from('cotas').select('produto_id, quantidade').eq('tipo_loja_id', tipo_loja_id),
+        consumido(Number(tipo_loja_id)),
       ]);
       const cotaMap = new Map((cot.data || []).map((c) => [c.produto_id, Number(c.quantidade)]));
       const boxSizeMap = new Map((prod.data || []).map((p) => [p.id, Number(p.caixa_master) || 1]));
@@ -58,40 +69,40 @@ export default async function handler(req, res) {
     }
 
     const body = req.body || {};
-    const { cliente_id, produto_id } = body;
+    const { tipo_loja_id, produto_id } = body;
 
     if (req.method === 'PUT') {
-      if (!cliente_id || !produto_id) return res.status(400).json({ ok: false, error: 'required' });
+      if (!tipo_loja_id || !produto_id) return res.status(400).json({ ok: false, error: 'required' });
       const caixas = Number(body.quantidade);
       if (!Number.isFinite(caixas) || caixas < 0) {
         return res.status(400).json({ ok: false, error: 'quantidade >= 0' });
       }
-const usado = (await consumido(cliente_id)).get(produto_id) || 0;
+    const usado = (await consumido(Number(tipo_loja_id))).get(produto_id) || 0;
       const cotaTotal = caixas + usado;
       const { error } = await supabaseAdmin
         .from('cotas')
-        .upsert({ cliente_id, produto_id, quantidade: cotaTotal }, { onConflict: 'cliente_id,produto_id' });
+        .upsert({ tipo_loja_id, produto_id, quantidade: cotaTotal }, { onConflict: 'tipo_loja_id,produto_id' });
       if (error) return res.status(400).json({ ok: false, error: error.message });
       return res.json({ ok: true, quantidade: cotaTotal, usado, restante: caixas });
     }
 
     if (req.method === 'DELETE') {
       if (produto_id) {
-        if (!cliente_id) return res.status(400).json({ ok: false, error: 'required' });
+        if (!tipo_loja_id) return res.status(400).json({ ok: false, error: 'required' });
         const { error } = await supabaseAdmin
           .from('cotas')
           .delete()
-          .eq('cliente_id', cliente_id)
+          .eq('tipo_loja_id', tipo_loja_id)
           .eq('produto_id', produto_id);
         if (error) return res.status(400).json({ ok: false, error: error.message });
         return res.json({ ok: true });
       }
 
-      if (cliente_id && body.all === true) {
+      if (tipo_loja_id && body.all === true) {
         const { error } = await supabaseAdmin
           .from('cotas')
           .delete()
-          .eq('cliente_id', cliente_id);
+          .eq('tipo_loja_id', tipo_loja_id);
         if (error) return res.status(400).json({ ok: false, error: error.message });
         return res.json({ ok: true, cleared: true });
       }

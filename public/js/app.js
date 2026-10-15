@@ -83,7 +83,7 @@ async function fj(url, opts = {}) {
    ===================================================================== */
 const S = {
   area: "cliente", admin: false, tab: "produtos", q: "", modal: null, cat: "",
-  produtos: [], clientes: [], config: [], cotas: {}, cotaCliente: "", imp: { nome: "", rows: [], file: "" },
+  produtos: [], clientes: [], config: [], cotas: {}, cotaTipoLoja: "", imp: { nome: "", rows: [], file: "" },
   cliente: null, catalogo: [], cart: {}, cartOpen: false, vendedor: "", done: null,
 };
 
@@ -186,8 +186,8 @@ async function loadAdmin() {
 }
 async function loadCotas() {
   S.cotas = {};
-  if (!S.cotaCliente) return render();
-  const d = list(await fj(API.quotas + "?cliente_id=" + encodeURIComponent(S.cotaCliente)).catch(() => []));
+  if (!S.cotaTipoLoja) return render();
+  const d = list(await fj(API.quotas + "?tipo_loja_id=" + encodeURIComponent(S.cotaTipoLoja)).catch(() => []));
   d.forEach((x) => { S.cotas[x.produto_id] = x; });
   render();
 }
@@ -240,16 +240,16 @@ function tClientes() {
 }
 
 function tCotas() {
-  const opts = `<option value="">Escolha um cliente</option>` + S.clientes.map((c) => `<option value="${esc(c[F.c.id])}" ${String(c[F.c.id]) === String(S.cotaCliente) ? "selected" : ""}>${esc(c[F.c.nome])}</option>`).join("");
-  const lista = S.cotaCliente ? S.produtos.map((p) => {
+  const opts = `<option value="">Escolha um tipo de loja</option>` + TIPOS.map((t) => `<option value="${t.id}" ${Number(t.id) === Number(S.cotaTipoLoja) ? "selected" : ""}>${esc(t.nome)}</option>`).join("");
+  const lista = S.cotaTipoLoja ? S.produtos.map((p) => {
     const pid = p[F.p.id];
     const c = S.cotas[pid];
     const tem = c && c.quantidade != null;
     return `<div class="tc-quota"><div><b>${esc(p[F.p.nome])}</b><small> ${esc(p[F.p.codigo])}</small>${tem ? ` <span style="color:var(--mute);font-size:12px">usado: ${c.usado}/${c.quantidade} (restam: ${c.restante}) caixas</span>` : ''}</div>
-      <input class="tc-in" type="number" min="0" placeholder="sem limite" data-quota="${esc(pid)}" value="${tem ? esc(c.restante) : ""}" title="O número é caixas restantes que o cliente pode comprar: vazio = sem limite, 0 = bloqueado">
+       <input class="tc-in" type="number" min="0" placeholder="sem limite" data-quota="${esc(pid)}" value="${tem ? esc(c.restante) : ""}" title="O número é caixas restantes que os clientes podem comprar: vazio = sem limite, 0 = bloqueado. Ao comprar, o contador diminui; para dar mais cota, some o valor e salve.">
     </div>`;
-  }).join("") : `<div class="tc-empty">Escolha um cliente para definir a cota por produto. O campo é caixas restantes que o cliente AINDA pode comprar (vitalício, sem prazo): campo vazio = sem limite, 0 = bloqueado. Ao comprar, o contador diminui; para dar mais cota, some o valor e salve.</div>`;
-   return `<div class="tc-bar"><select class="tc-sel" style="max-width:340px" data-bind="cotaCliente">${opts}</select>${S.cotaCliente ? `<button class="tc-btn danger sm" data-act="clearQuotas" style="margin-left:auto">Limpar cotas</button>` : ""}</div>${lista}`;
+   }).join("") : `<div class="tc-empty">Escolha um tipo de loja para definir a cota por produto. O campo é caixas restantes que os clientes AINDA podem comprar (vitalício, sem prazo): campo vazio = sem limite, 0 = bloqueado. Ao comprar, o contador diminui; para dar mais cota, some o valor e salve.</div>`;
+   return `<div class="tc-bar"><select class="tc-sel" style="max-width:340px" data-bind="cotaTipoLoja">${opts}</select>${S.cotaTipoLoja ? `<button class="tc-btn danger sm" data-act="clearQuotas" style="margin-left:auto">Limpar cotas</button>` : ""}</div>${lista}`;
 }
 
 function tImportar() {
@@ -293,11 +293,11 @@ function modalHtml() {
     <p style="color:var(--mute);font-size:13px">Esta ação não pode ser desfeita.</p>
     <div class="tc-foot"><button class="tc-btn ghost" data-act="closeM">Cancelar</button><button class="tc-btn danger" data-act="delP" data-id="${esc(d[F.p.id])}">Sim, excluir</button></div>`;
   } else if (m.type === "clearQuotas") {
-    const cliNome = esc(d.cliente_nome || "");
+      const tipoLojaNome = esc(m.tipo_loja_nome || "");
     inner = `<h3>Limpar cotas</h3>
-    <p>Tem certeza que quer limpar <b>todas as cotas</b> do cliente <b>${cliNome}</b>?</p>
+      <p>Tem certeza que quer limpar <b>todas as cotas</b> do tipo de loja <b>${tipoLojaNome}</b>?</p>
     <p style="color:var(--mute);font-size:13px">Esta ação removerá todas as cotas. Não pode ser desfeita.</p>
-    <div class="tc-foot"><button class="tc-btn ghost" data-act="closeM">Cancelar</button><button class="tc-btn danger" data-act="confirmClearQuotas" data-id="${esc(d.cliente_id)}">Sim, limpar</button></div>`;
+     <div class="tc-foot"><button class="tc-btn ghost" data-act="closeM">Cancelar</button><button class="tc-btn danger" data-act="confirmClearQuotas" data-id="${esc(m.tipo_loja_id)}">Sim, limpar</button></div>`;
   } else {
     const c = F.c;
     inner = `<h3>${d[c.id] ? "Editar cliente" : "Novo cliente"}</h3>
@@ -323,7 +323,7 @@ const price = (p) => num(p.preco_unitario);
 const priceBox = (p) => num(p.preco_caixa_com_desconto);
 const boxSize = (p) => num(p[F.p.caixa]) || 1;
 // restante = cota menos o que o cliente já pediu (em caixas); sem cota = sem limite
-const limite = (p) => (p.restante != null ? num(p.restante) : p.cota != null ? num(p.cota) : Infinity);
+const limite = (p) => (p.restante != null ? num(p.restante) : Infinity);
 // Carrinho armazena CAIXAS (não unidades)
 const norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 const cartCount = () => Object.values(S.cart).reduce((a, q) => a + q, 0);
@@ -424,16 +424,16 @@ const A = {
   editC(el) { S.modal = { type: "c", data: byId(S.clientes, F.c.id, el.dataset.id) }; render(); },
    closeM() { S.modal = null; render(); },
    closeBg(el, e) { if (e.target === el) A.closeM(); },
-   clearQuotas() {
-     const cli = byId(S.clientes, F.c.id, S.cotaCliente);
-     S.modal = { type: "clearQuotas", data: { cliente_id: S.cotaCliente, cliente_nome: cli ? cli[F.c.nome] : "" } };
-     render();
-   },
-   async confirmClearQuotas(el) {
-     const clienteId = el.dataset.id;
-     await fj(API.quotas, { method: "DELETE", body: { cliente_id: clienteId, all: true } });
-     S.modal = null; S.cotas = {}; await loadCotas(); toast("Todas as cotas limpas");
-   },
+    clearQuotas() {
+      const tipoLoja = TIPOS.find(t => Number(t.id) === Number(S.cotaTipoLoja));
+      S.modal = { type: "clearQuotas", data: { tipo_loja_id: S.cotaTipoLoja, tipo_loja_nome: tipoLoja ? tipoLoja.nome : "" } };
+      render();
+    },
+    async confirmClearQuotas(el) {
+      const tipoLojaId = el.dataset.id;
+      await fj(API.quotas, { method: "DELETE", body: { tipo_loja_id: tipoLojaId, all: true } });
+      S.modal = null; S.cotas = {}; await loadCotas(); toast("Todas as cotas limpas");
+    },
   async saveP() {
     const v = readModal(), d = S.modal.data || {}, file = $(".tc-modal [name=file]").files[0];
     let img = d[F.p.img] || "";
@@ -515,11 +515,11 @@ document.addEventListener("click", async (e) => {
 
 document.addEventListener("input", async (e) => {
   const t = e.target;
-  if (t.dataset.bind) {
-    S[t.dataset.bind] = t.value;
-    if (t.dataset.bind === "cotaCliente") return loadCotas();
-    return render();
-  }
+    if (t.dataset.bind) {
+      S[t.dataset.bind] = t.value;
+      if (t.dataset.bind === "cotaTipoLoja") return loadCotas();
+      return render();
+    }
   if (t.dataset.cfg !== undefined) S.config[t.dataset.cfg][t.dataset.f] = t.value;
   if (t.id === "cnpj") t.value = maskCnpj(t.value);
   if (t.name === "cnpj") t.value = maskCnpj(t.value);
@@ -535,12 +535,12 @@ document.addEventListener("change", async (e) => {
     if (t.dataset.quota) {
       const pid = t.dataset.quota;
       if (t.value === "") {
-        await fj(API.quotas, { method: "DELETE", body: { cliente_id: S.cotaCliente, produto_id: pid } });
+        await fj(API.quotas, { method: "DELETE", body: { tipo_loja_id: S.cotaTipoLoja, produto_id: pid } });
         return toast("Cota removida: sem limite");
       }
       const currentUsado = S.cotas[pid]?.usado || 0;
       const quantidadeTotal = num(t.value) + currentUsado;
-      const r = await fj(API.quotas, { method: UPDATE_METHOD, body: { cliente_id: S.cotaCliente, produto_id: pid, quantidade: quantidadeTotal } });
+      const r = await fj(API.quotas, { method: UPDATE_METHOD, body: { tipo_loja_id: S.cotaTipoLoja, produto_id: pid, quantidade: quantidadeTotal } });
       await loadCotas();
       return toast(`Cota salva: restam ${r && r.restante != null ? r.restante : num(t.value)}`);
     }

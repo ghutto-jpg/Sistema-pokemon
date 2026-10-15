@@ -35,10 +35,10 @@ create table if not exists clientes (
 );
 
 create table if not exists cotas (
-  cliente_id bigint references clientes(id) on delete cascade,
+  tipo_loja_id bigint references tipos_loja(id) on delete cascade,
   produto_id bigint references produtos(id) on delete cascade,
   quantidade int not null check (quantidade >= 0),
-  primary key (cliente_id, produto_id)
+  primary key (tipo_loja_id, produto_id)
 );
 
 create table if not exists pedidos (
@@ -88,6 +88,7 @@ declare
   v_item record;
   v_produto record;
   v_cliente record;
+  v_tipo_loja_id bigint;
   v_cota int;
   v_consumido int;
   v_restante int;
@@ -99,9 +100,11 @@ begin
     raise exception 'Itens inválidos';
   end if;
 
-  select id, ativo, desconto into v_cliente from clientes where id = p_cliente_id for update;
+  select id, ativo, desconto, tipo_loja_id into v_cliente from clientes where id = p_cliente_id for update;
   if not found then raise exception 'Cliente não encontrado'; end if;
   if v_cliente.ativo is false then raise exception 'Cliente inativo'; end if;
+  
+  v_tipo_loja_id := v_cliente.tipo_loja_id;
 
   insert into pedidos (cliente_id) values (p_cliente_id) returning id into v_pedido_id;
 
@@ -117,16 +120,17 @@ begin
     if v_produto.status = 'INDISPONÍVEL' then raise exception 'Produto indisponível'; end if;
 
     select quantidade into v_cota from cotas
-      where cliente_id = p_cliente_id and produto_id = v_produto.id;
+      where tipo_loja_id = v_tipo_loja_id and produto_id = v_produto.id;
     if v_cota is not null and v_cota = 0 then
-      raise exception 'Produto bloqueado para este cliente';
+      raise exception 'Produto bloqueado para este tipo de loja';
     end if;
 
     v_box_size := coalesce(v_produto.caixa_master, 1);
 
     select coalesce(sum(floor(pi.quantidade / v_box_size)), 0) into v_consumido
       from pedido_itens pi join pedidos p on p.id = pi.pedido_id
-      where p.cliente_id = p_cliente_id and pi.produto_id = v_produto.id;
+      where p.cliente_id in (select id from clientes where tipo_loja_id = v_tipo_loja_id)
+        and pi.produto_id = v_produto.id;
 
     if v_cota is not null then
       v_restante := v_cota - v_consumido;

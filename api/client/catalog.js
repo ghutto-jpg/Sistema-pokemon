@@ -10,22 +10,29 @@ export default async function handler(req, res) {
   try {
     const clienteId = sessao.cliente_id;
 
-    const { data: cli } = await supabaseAdmin
-      .from('clientes').select('id, cnpj, nome_fantasia, desconto, ativo, prazo_pagamento').eq('id', clienteId).maybeSingle();
-    if (!cli || !cli.ativo) return res.status(401).json({ ok: false, error: 'Cliente não autorizado' });
-
-    const [prod, cot, ped, cfg] = await Promise.all([
+    const [cli, prod, ped, cfg] = await Promise.all([
+      supabaseAdmin
+        .from('clientes')
+        .select('id, cnpj, nome_fantasia, desconto, ativo, prazo_pagamento, tipo_loja_id')
+        .eq('id', clienteId)
+        .maybeSingle(),
       supabaseAdmin.from('produtos').select('*').eq('ativo', true).neq('status', 'INDISPONÍVEL').order('nome'),
-      supabaseAdmin.from('cotas').select('produto_id, quantidade').eq('cliente_id', clienteId),
       supabaseAdmin.from('pedidos').select('id').eq('cliente_id', clienteId),
       supabaseAdmin.from('configuracoes').select('chave, valor'),
     ]);
+
+    if (!cli || !cli.ativo) return res.status(401).json({ ok: false, error: 'Cliente não autorizado' });
+
+    // Get client's store type for quota lookup
+    const tipoLojaId = cli.tipo_loja_id;
 
     const usado = new Map();
     const ids = (ped.data || []).map((p) => p.id);
     if (ids.length) {
       const { data: itens } = await supabaseAdmin
-        .from('pedido_itens').select('produto_id, quantidade').in('pedido_id', ids);
+        .from('pedido_itens')
+        .select('produto_id, quantidade')
+        .in('pedido_id', ids);
       // Converter unidades para caixas
       const { data: prods } = await supabaseAdmin.from('produtos').select('id, caixa_master');
       const boxSizeMap = new Map((prods || []).map((p) => [p.id, Number(p.caixa_master) || 1]));
@@ -35,6 +42,12 @@ export default async function handler(req, res) {
         usado.set(i.produto_id, (usado.get(i.produto_id) || 0) + caixas);
       });
     }
+
+    // Get quotas for the client's store type
+    const cot = await supabaseAdmin
+      .from('cotas')
+      .select('produto_id, quantidade')
+      .eq('tipo_loja_id', tipoLojaId);
 
     const cotaMap = new Map((cot.data || []).map((c) => [c.produto_id, c.quantidade]));
     const dc = Number(cli.desconto) || 0;
