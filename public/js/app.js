@@ -245,11 +245,14 @@ function tCotas() {
     const pid = p[F.p.id];
     const c = S.cotas[pid];
     const tem = c && c.quantidade != null;
-    return `<div class="tc-quota"><div><b>${esc(p[F.p.nome])}</b><small> ${esc(p[F.p.codigo])}</small>${tem ? ` <span style="color:var(--mute);font-size:12px">usado: ${c.usado}/${c.quantidade} (restam: ${c.restante}) caixas</span>` : ''}</div>
-       <input class="tc-in" type="number" min="0" placeholder="sem limite" data-quota="${esc(pid)}" value="${tem ? esc(c.restante) : ""}" title="O número é caixas restantes que os clientes podem comprar: vazio = sem limite, 0 = bloqueado. Ao comprar, o contador diminui; para dar mais cota, some o valor e salve.">
+    const total = tem ? c.quantidade : null;
+    const usado = tem ? c.usado : 0;
+    const restante = tem ? c.restante : null;
+    return `<div class="tc-quota"><div><b>${esc(p[F.p.nome])}</b><small> ${esc(p[F.p.codigo])}</small>${tem ? ` <span style="color:var(--mute);font-size:12px">Cota total: ${total} | Usado: ${usado} | Restam: ${restante} caixas</span>` : '<span style="color:var(--hot);font-size:12px"> Sem cota definida (sem limite)</span>'}</div>
+       <input class="tc-in" type="number" min="0" placeholder="sem limite" data-quota="${esc(pid)}" value="${tem ? esc(total) : ""}" title="Digite a COTA TOTAL (caixas permitidas por cliente desse tipo). Vazio = sem limite, 0 = bloqueado.">
     </div>`;
-   }).join("") : `<div class="tc-empty">Escolha um tipo de loja para definir a cota por produto. O campo é caixas restantes que os clientes AINDA podem comprar (vitalício, sem prazo): campo vazio = sem limite, 0 = bloqueado. Ao comprar, o contador diminui; para dar mais cota, some o valor e salve.</div>`;
-   return `<div class="tc-bar"><select class="tc-sel" style="max-width:340px" data-bind="cotaTipoLoja">${opts}</select>${S.cotaTipoLoja ? `<button class="tc-btn danger sm" data-act="clearQuotas" style="margin-left:auto">Limpar cotas</button>` : ""}</div>${lista}`;
+   }).join("") : `<div class="tc-empty">Escolha um tipo de loja para definir a cota por produto. O campo é a COTA TOTAL de caixas que cada cliente desse tipo pode comprar (vitalício, sem prazo): vazio = sem limite, 0 = bloqueado.</div>`;
+  return `<div class="tc-bar"><select class="tc-sel" style="max-width:340px" data-bind="cotaTipoLoja">${opts}</select>${S.cotaTipoLoja ? `<button class="tc-btn danger sm" data-act="clearQuotas" style="margin-left:auto">Limpar cotas</button>` : ""}</div>${lista}`;
 }
 
 function tImportar() {
@@ -322,9 +325,7 @@ function viewClienteLogin() {
 const price = (p) => num(p.preco_unitario);
 const priceBox = (p) => num(p.preco_caixa_com_desconto);
 const boxSize = (p) => num(p[F.p.caixa]) || 1;
-// restante = cota menos o que o cliente já pediu (em caixas); sem cota = sem limite
 const limite = (p) => (p.restante != null ? num(p.restante) : Infinity);
-// Carrinho armazena CAIXAS (não unidades)
 const norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 const cartCount = () => Object.values(S.cart).reduce((a, q) => a + q, 0);
 const cartTotal = () => S.catalogo.reduce((a, p) => a + (S.cart[p[F.p.id]] || 0) * priceBox(p), 0);
@@ -332,12 +333,22 @@ const cartTotal = () => S.catalogo.reduce((a, p) => a + (S.cart[p[F.p.id]] || 0)
 function cardHtml(p, i) {
   const id = p[F.p.id], q = S.cart[id] || 0, lim = limite(p);
   const off = lim <= 0 || p[F.p.status] === "A CONFIRMAR";
+  let quotaInfo = "";
+  if (p[F.p.status] === "A CONFIRMAR") quotaInfo = "A confirmar";
+  else if (lim <= 0) quotaInfo = "Cota esgotada";
+  else if (lim === Infinity) quotaInfo = "Sem limite de quantidade";
+  else {
+    const total = p.cota != null ? p.cota : "?";
+    const usado = p.usado != null ? p.usado : 0;
+    quotaInfo = `Cota: ${total} caixas | Usado: ${usado} | Restam: <b>${lim}</b>`;
+  }
   return `<article class="tc-card ${off ? "tc-off" : ""}" style="--i:${i}">
     <div class="tc-img">${p[F.p.img] ? `<img src="${esc(p[F.p.img])}" alt="${esc(p[F.p.nome])}" loading="lazy">` : "?"}</div>
-<h3>${esc(p[F.p.nome])}</h3>     <div class="sub">${esc(p[F.p.categoria] || "")}${p[F.p.caixa] ? ", caixa com " + p[F.p.caixa] + " un." : ""}</div>
-      <div class="tc-price">${brl(priceBox(p))}<span style="font-size:13px;font-weight:400;color:var(--mute)"> a caixa</span></div>
-      ${p[F.p.pdv] ? `<div class="tc-pvdsug">Preço sugerido R$ ${brl(num(p[F.p.pdv]))}/un</div>` : ""}
-    <div class="tc-lim">${p[F.p.status] === "A CONFIRMAR" ? "A confirmar" : lim <= 0 ? "Cota esgotada" : lim === Infinity ? "Sem limite de quantidade" : `Você ainda pode levar <b>${lim}</b> caixas`}</div>
+    <h3>${esc(p[F.p.nome])}</h3>
+    <div class="sub">${esc(p[F.p.categoria] || "")}${p[F.p.caixa] ? ", caixa com " + p[F.p.caixa] + " un." : ""}</div>
+    <div class="tc-price">${brl(priceBox(p))}<span style="font-size:13px;font-weight:400;color:var(--mute)"> a caixa</span></div>
+    ${p[F.p.pdv] ? `<div class="tc-pvdsug">Preço sugerido R$ ${brl(num(p[F.p.pdv]))}/un</div>` : ""}
+    <div class="tc-lim">${quotaInfo}</div>
     <div class="tc-step"><button data-act="sub" data-id="${esc(id)}" ${q <= 0 ? "disabled" : ""} aria-label="menos">-</button><b>${q}</b><button data-act="add" data-id="${esc(id)}" ${off || q + 1 > lim ? "disabled" : ""} aria-label="mais">+</button></div></article>`;
 }
 
@@ -538,11 +549,10 @@ document.addEventListener("change", async (e) => {
         await fj(API.quotas, { method: "DELETE", body: { tipo_loja_id: S.cotaTipoLoja, produto_id: pid } });
         return toast("Cota removida: sem limite");
       }
-      const currentUsado = S.cotas[pid]?.usado || 0;
-      const quantidadeTotal = num(t.value) + currentUsado;
+      const quantidadeTotal = num(t.value);
       const r = await fj(API.quotas, { method: UPDATE_METHOD, body: { tipo_loja_id: S.cotaTipoLoja, produto_id: pid, quantidade: quantidadeTotal } });
       await loadCotas();
-      return toast(`Cota salva: restam ${r && r.restante != null ? r.restante : num(t.value)}`);
+      return toast(`Cota salva: total ${quantidadeTotal} caixas`);
     }
     if (t.dataset.import !== undefined && t.files[0]) {
       const file = t.files[0];

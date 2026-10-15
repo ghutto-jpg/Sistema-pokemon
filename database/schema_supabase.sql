@@ -17,7 +17,7 @@ create table if not exists produtos (
   caixa_master int not null default 1,
   preco_caixa_master numeric(12,2) not null default 0,
   pdv_sugerido numeric(12,2) not null default 0,
-  status text not null default 'DISPONÍVEL' check (status in ('DISPONÍVEL','A CONFIRMAR','INDISPONÍVEL')),
+  status text not null default 'DISPONÃ­EL' check (status in ('DISPONÃ­EL','A CONFIRMAR','INDISPONÃ­EL')),
   imagem text,
   ativo boolean not null default true,
   criado_em timestamptz default now()
@@ -75,6 +75,11 @@ on conflict (nome) do nothing;
 insert into configuracoes (chave, valor) values ('whatsapp_vendedor','')
 on conflict (chave) do nothing;
 
+-- Cliente de teste (ajuste CNPJ e tipo_loja_id conforme necessário)
+insert into clientes (cnpj, nome_fantasia, tipo_loja_id, desconto, ativo) values
+  ('12345678000195', 'Loja Teste E-commerce', 1, 10, true)
+on conflict (cnpj) do nothing;
+
 create or replace function criar_pedido(p_cliente_id bigint, p_itens jsonb)
 returns bigint
 language plpgsql
@@ -130,7 +135,7 @@ begin
       raise exception 'Produto inativo';
     end if;
 
-    if v_produto.status = 'INDISPONÍVEL' then
+    if v_produto.status = 'INDISPONÃ­EL' then
       raise exception 'Produto indisponível';
     end if;
 

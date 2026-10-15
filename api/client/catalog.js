@@ -58,8 +58,9 @@ export default async function handler(req, res) {
       .map((p) => {
         const { precoCaixaDesc, precoUnit } = calcPrice(dc, p.preco_caixa_master, p.caixa_master);
         const cota = cotaMap.has(p.id) ? cotaMap.get(p.id) : null;
-        const restante = cota === null ? null : Math.max(0, cota - (usado.get(p.id) || 0));
-        return { ...p, desconto_cliente: dc, preco_caixa_com_desconto: precoCaixaDesc, preco_unitario: precoUnit, cota, restante };
+        const usado = usado.get(p.id) || 0;
+        const restante = cota === null ? null : Math.max(0, cota - usado);
+        return { ...p, desconto_cliente: dc, preco_caixa_com_desconto: precoCaixaDesc, preco_unitario: precoUnit, cota, usado, restante };
       });
 
     const whatsapp = (cfg.data || []).find((c) => c.chave === 'whatsapp_vendedor')?.valor || '';
