@@ -1,4 +1,4 @@
-﻿import { supabaseAdmin } from '../../lib/supabase-admin.js';
+import { supabaseAdmin } from '../../lib/supabase-admin.js';
 import { requireAdmin } from '../../lib/auth-admin.js';
 
 async function consumido(tipo_loja_id) {

@@ -49,29 +49,29 @@ on conflict (codigo) do update set
 -- Pega o id do cliente
 do $$
 declare
-  v_cliente_id bigint;
+  -- v_cliente_id bigint;
   v_prod1_id bigint;
   v_prod2_id bigint;
   v_prod3_id bigint;
 begin
-  select id into v_cliente_id from clientes where cnpj = '00000000000000';
+  -- select id into v_cliente_id from clientes where cnpj = '00000000000000';
   select id into v_prod1_id from produtos where codigo = 'TESTE-001';
   select id into v_prod2_id from produtos where codigo = 'TESTE-002';
   select id into v_prod3_id from produtos where codigo = 'TESTE-003';
 
   -- Cota 20 para TESTE-001
-  insert into cotas (cliente_id, produto_id, quantidade)
-  values (v_cliente_id, v_prod1_id, 20)
-  on conflict (cliente_id, produto_id) do update set quantidade = excluded.quantidade;
+  insert into cotas (tipo_loja_id, produto_id, quantidade)
+  values ((select tipo_loja_id from clientes where cnpj = '00000000000000'), v_prod1_id, 20)
+  on conflict (tipo_loja_id, produto_id) do update set quantidade = excluded.quantidade;
 
   -- Cota 0 para TESTE-002 (bloqueado)
-  insert into cotas (cliente_id, produto_id, quantidade)
-  values (v_cliente_id, v_prod2_id, 0)
-  on conflict (cliente_id, produto_id) do update set quantidade = excluded.quantidade;
+  insert into cotas (tipo_loja_id, produto_id, quantidade)
+  values ((select tipo_loja_id from clientes where cnpj = '00000000000000'), v_prod2_id, 0)
+  on conflict (tipo_loja_id, produto_id) do update set quantidade = excluded.quantidade;
 
   -- TESTE-003: SEM cota (não insere nada = ilimitado)
   -- Se já existir uma cota antiga, remove para voltar a ser ilimitado
-  delete from cotas where cliente_id = v_cliente_id and produto_id = v_prod3_id;
+  delete from cotas where tipo_loja_id = (select tipo_loja_id from clientes where cnpj = '00000000000000') and produto_id = v_prod3_id;
 end $$;
 
 -- =====================================================================
@@ -79,6 +79,6 @@ end $$;
 -- =====================================================================
 -- delete from pedido_itens where pedido_id in (select id from pedidos where cliente_id = (select id from clientes where cnpj = '00000000000000'));
 -- delete from pedidos where cliente_id = (select id from clientes where cnpj = '00000000000000');
--- delete from cotas where cliente_id = (select id from clientes where cnpj = '00000000000000');
+-- delete from cotas where tipo_loja_id = (select tipo_loja_id from clientes where cnpj = '00000000000000');
 -- delete from produtos where codigo in ('TESTE-001','TESTE-002','TESTE-003');
 -- delete from clientes where cnpj = '00000000000000';
