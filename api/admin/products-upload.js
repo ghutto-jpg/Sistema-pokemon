@@ -8,6 +8,7 @@ const MAX_BYTES = 1024 * 1024; // 1MB
 const EXT = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' };
 
 export default async function handler(req, res) {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
   const admin = await requireAdmin(req);
   if (!admin) return res.status(401).json({ ok: false });
   if (req.method !== 'POST') return res.status(405).json({ ok: false });

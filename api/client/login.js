@@ -4,6 +4,7 @@ import { supabaseAdmin } from '../../lib/supabase-admin.js';
 import { checkLimit } from '../../lib/rate-limit.js';
 
 export default async function handler(req, res) {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
   // Sair: apaga o cookie de sessão do cliente
   if (req.method === 'DELETE') {
     res.setHeader('Set-Cookie', serialize('client_session', '', {

@@ -35,6 +35,7 @@ async function consumido(tipo_loja_id) {
 }
 
 export default async function handler(req, res) {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
   const admin = await requireAdmin(req);
   if (!admin) return res.status(401).json({ ok: false });
 
@@ -77,13 +78,12 @@ export default async function handler(req, res) {
       if (!Number.isFinite(caixas) || caixas < 0) {
         return res.status(400).json({ ok: false, error: 'quantidade >= 0' });
       }
-    const usado = (await consumido(Number(tipo_loja_id))).get(produto_id) || 0;
-      const cotaTotal = caixas + usado;
       const { error } = await supabaseAdmin
         .from('cotas')
-        .upsert({ tipo_loja_id, produto_id, quantidade: cotaTotal }, { onConflict: 'tipo_loja_id,produto_id' });
+        .upsert({ tipo_loja_id, produto_id, quantidade: caixas }, { onConflict: 'tipo_loja_id,produto_id' });
       if (error) return res.status(400).json({ ok: false, error: error.message });
-      return res.json({ ok: true, quantidade: cotaTotal, usado, restante: caixas });
+      const usado = (await consumido(Number(tipo_loja_id))).get(produto_id) || 0;
+      return res.json({ ok: true, quantidade: caixas, usado, restante: Math.max(0, caixas - usado) });
     }
 
     if (req.method === 'DELETE') {

@@ -4,6 +4,7 @@ import { signToken } from '../../lib/auth-client.js';
 import { requireAdmin } from '../../lib/auth-admin.js';
 
 export default async function handler(req, res) {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
   const method = req.method;
   const url = new URL(req.url, 'http://localhost'); const action = url.searchParams.get('action') || req.body?.action;
   if (method === 'GET') {

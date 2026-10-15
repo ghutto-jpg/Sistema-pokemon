@@ -2,6 +2,7 @@
 import { requireClient } from '../../lib/auth-admin.js';
 
 export default async function handler(req, res) {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
   if (req.method !== 'POST') return res.status(405).json({ ok: false });
   const client = await requireClient(req); if (!client) return res.status(401).json({ ok: false });
   try {

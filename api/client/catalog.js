@@ -3,6 +3,7 @@ import { requireClient } from '../../lib/auth-admin.js';
 import { calcPrice } from '../../lib/calc-price.js';
 
 export default async function handler(req, res) {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
   if (req.method !== 'GET') return res.status(405).json({ ok: false });
   const sessao = await requireClient(req);
   if (!sessao) return res.status(401).json({ ok: false });
