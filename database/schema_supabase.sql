@@ -38,6 +38,7 @@ create table if not exists cotas (
   tipo_loja_id bigint references tipos_loja(id) on delete cascade,
   produto_id bigint references produtos(id) on delete cascade,
   quantidade int not null check (quantidade >= 0),
+  ultimo_reset timestamptz,
   primary key (tipo_loja_id, produto_id)
 );
 

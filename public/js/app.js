@@ -462,7 +462,7 @@ const A = {
       render();
     },
     async confirmClearQuotas(el) {
-      const tipoLojaId = el.dataset.id;
+      const tipoLojaId = S.cotaTipoLoja || el.dataset.id;
       await fj(API.quotas + "?tipo_loja_id=" + encodeURIComponent(tipoLojaId) + "&all=true", { method: "DELETE" });
       S.modal = null; S.cotas = {}; await loadCotas(); toast("Todas as cotas limpas");
     },

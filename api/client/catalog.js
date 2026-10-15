@@ -11,15 +11,16 @@ export default async function handler(req, res) {
   try {
     const clienteId = sessao.cliente_id;
 
-    const [cli, prod, ped, cfg] = await Promise.all([
+    const [cli, prod, ped, cfg, cot] = await Promise.all([
       supabaseAdmin
         .from('clientes')
         .select('id, cnpj, nome_fantasia, desconto, ativo, prazo_pagamento, tipo_loja_id')
         .eq('id', clienteId)
         .maybeSingle(),
       supabaseAdmin.from('produtos').select('*').eq('ativo', true).neq('status', 'INDISPONÍVEL').order('nome'),
-      supabaseAdmin.from('pedidos').select('id').eq('cliente_id', clienteId),
+      supabaseAdmin.from('pedidos').select('id, criado_em').eq('cliente_id', clienteId),
       supabaseAdmin.from('configuracoes').select('chave, valor'),
+      supabaseAdmin.from('cotas').select('produto_id, quantidade, ultimo_reset').eq('tipo_loja_id', cli.data?.tipo_loja_id),
     ]);
 
     if (!cli || !cli.data?.ativo) return res.status(401).json({ ok: false, error: 'Cliente não autorizado' });
@@ -27,28 +28,35 @@ export default async function handler(req, res) {
     // Get client's store type for quota lookup
     const tipoLojaId = cli.data.tipo_loja_id;
 
+    // Build map of reset dates by product
+    const resetsMap = new Map();
+    (cot.data || []).forEach((c) => {
+      if (c.ultimo_reset) resetsMap.set(c.produto_id, new Date(c.ultimo_reset).getTime());
+    });
+
+    // Calcular usado considerando data de reset por produto
     const usado = new Map();
-    const ids = (ped.data || []).map((p) => p.id);
-    if (ids.length) {
+    const pedidos = ped.data || [];
+    if (pedidos.length) {
+      const ids = pedidos.map((p) => p.id);
       const { data: itens } = await supabaseAdmin
         .from('pedido_itens')
-        .select('produto_id, quantidade')
+        .select('pedido_id, produto_id, quantidade')
         .in('pedido_id', ids);
       // Converter unidades para caixas
       const { data: prods } = await supabaseAdmin.from('produtos').select('id, caixa_master');
       const boxSizeMap = new Map((prods || []).map((p) => [p.id, Number(p.caixa_master) || 1]));
       (itens || []).forEach((i) => {
+        const pedido = pedidos.find((p) => p.id === i.pedido_id);
+        if (!pedido) return;
+        const pedidoTime = new Date(pedido.criado_em).getTime();
+        const resetTime = resetsMap.get(i.produto_id);
+        if (resetTime !== undefined && pedidoTime < resetTime) return; // Pedido antes do reset, ignora
         const boxSize = boxSizeMap.get(i.produto_id) || 1;
         const caixas = Math.floor(i.quantidade / boxSize);
         usado.set(i.produto_id, (usado.get(i.produto_id) || 0) + caixas);
       });
     }
-
-    // Get quotas for the client's store type
-    const cot = await supabaseAdmin
-      .from('cotas')
-      .select('produto_id, quantidade')
-      .eq('tipo_loja_id', tipoLojaId);
 
     const cotaMap = new Map((cot.data || []).map((c) => [c.produto_id, c.quantidade]));
     const dc = Number(cli.data.desconto) || 0;
