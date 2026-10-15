@@ -22,6 +22,10 @@ export default async function handler(req, res) {
   }
   if (method === 'DELETE') {
     const body = req.body || {}; const id = body.id; if (!id) return res.status(400).json({ ok: false, error: 'id required' });
+    // Primeiro remove os itens de pedido e pedidos do cliente (foreign key constraint)
+    const { error: errItens } = await supabaseAdmin.from('pedido_itens').delete().in('pedido_id', (await supabaseAdmin.from('pedidos').select('id').eq('cliente_id', id)).data?.map((p) => p.id) || []);
+    const { error: errPedidos } = await supabaseAdmin.from('pedidos').delete().eq('cliente_id', id);
+    if (errItens || errPedidos) return res.status(400).json({ ok: false, error: errItens?.message || errPedidos?.message });
     const { error } = await supabaseAdmin.from('clientes').delete().eq('id', id);
     if (error) return res.status(400).json({ ok: false, error: error.message }); return res.json({ ok: true });
   }
