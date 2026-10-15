@@ -1,1 +1,0 @@
-curl -v -X GET https://pokemon-sistema.vercel.app/api/client/catalog -H "Cookie: client_session=test" 2>&1

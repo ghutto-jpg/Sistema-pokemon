@@ -538,7 +538,9 @@ document.addEventListener("change", async (e) => {
         await fj(API.quotas, { method: "DELETE", body: { cliente_id: S.cotaCliente, produto_id: pid } });
         return toast("Cota removida: sem limite");
       }
-      const r = await fj(API.quotas, { method: UPDATE_METHOD, body: { cliente_id: S.cotaCliente, produto_id: pid, quantidade: num(t.value) } });
+      const currentUsado = S.cotas[pid]?.usado || 0;
+      const quantidadeTotal = num(t.value) + currentUsado;
+      const r = await fj(API.quotas, { method: UPDATE_METHOD, body: { cliente_id: S.cotaCliente, produto_id: pid, quantidade: quantidadeTotal } });
       await loadCotas();
       return toast(`Cota salva: restam ${r && r.restante != null ? r.restante : num(t.value)}`);
     }
