@@ -17,7 +17,7 @@ const API = {
 };
 const UPDATE_METHOD = "PUT"; // troque para "PATCH" se sua API usar PATCH
 // Tipos de loja: iguais aos da tabela tipos_loja do banco. Se mudar lá, mude aqui.
-const TIPOS = [
+let TIPOS = [
   { id: 1, nome: "E-commerce", desc: 10 }, { id: 2, nome: "Varejo", desc: 20 }, { id: 3, nome: "Liga", desc: 20 },
   { id: 4, nome: "Clube", desc: 23 }, { id: 5, nome: "Hobby Store", desc: 20 }, { id: 6, nome: "Atacado", desc: 28 },
 ];
@@ -182,6 +182,9 @@ async function loadAdmin() {
     fj(API.products).catch(() => []), fj(API.clients).catch(() => []), fj(API.settings).catch(() => []),
   ]);
   S.produtos = list(p); S.clientes = list(c); S.config = (s && s.configuracoes) || list(s);
+  if (s && Array.isArray(s.tipos) && s.tipos.length) {
+    TIPOS = s.tipos.map((t) => ({ id: t.id, nome: t.nome, desc: Number(t.desconto_padrao) || 0 }));
+  }
   render();
 }
 async function loadCotas() {

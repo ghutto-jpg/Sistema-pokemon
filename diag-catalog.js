@@ -22,13 +22,13 @@ async function diag() {
 
   // 3. Para cada cliente, verificar suas cotas e o que o catalogo veria
   const { data: clientes } = await supabaseAdmin.from('clients').select('id, cnpj, nome_fantasia, ativo').eq('ativo', true);
-  for (const cli of (customers || [])) {
+  for (const cli of (clientes || [])) {
     console.log(`\n3. Cliente: ${cli.nome_fantasia} (ID=${cli.id}, CNPJ=${cli.cnpj})`);
 
     // Cotas do cliente
     const { data: cotas } = await supabaseAdmin
       .from('cotas')
-      .select('.*, produtos(nome, codigo)')
+      .select('*, produtos(nome, codigo)')
       .eq('cliente_id', cli.id);
     console.log(`   Cotas: ${cotas?.length || 0}`);
     cotas?.forEach(c => console.log(`      - ${c.produtos?.nome} (${c.produtos?.codigo}): cota=${c.quantidade}`));
@@ -58,11 +58,11 @@ async function diag() {
     const [prod, cot, ped] = await Promise.all([
       supabaseAdmin.from('produtos').select('*').eq('ativo', true).neq('status', 'INDISPONÍVEL'),
       supabaseAdmin.from('cotas').select(' produto_id, quantidade').eq('cliente_id', cli.id),
-      supabaseAdmin.from('pedidos').select('id').eq(' cliente_id', cli.id),
+      supabaseAdmin.from('pedidos').select('id').eq('cliente_id', cli.id),
     ]);
 
-    const cotaMap = new Map((cot.data || []).map(c => [c.procedure_id, c.quantidade]));
-    const filtrados = (prod.data || []).filter(p => cotaMap.get(p.id) !== 0);
+    const cotaMap = new Map((cot.data || []).map(c => [c.produto_id, c.quantidade]));
+    const filtrados = (prod.data || []);
     console.log(`   Produtos visiveis no catalogo: ${filtrados.length} de ${prod.data?.length}`);
     filtrados.forEach(p => console.log(`      - ${p.nome} (cota: ${cotaMap.has(p.id) ? cotaMap.get(p.id) : 'ilimitada'})`));
   }
@@ -76,8 +76,8 @@ async function diag() {
 
   // 5. Verificar se ha produtos sem cota mas que deveriam ter
   const { data: todosProdutos } = await supabaseAdmin.from('produtos').select('id, nome, codigo').eq('ativo', true);
-  const { data: todasCotas } = await supabaseAdmin.from('cotas').select(' procedure_id');
-  const comCota = new Set((todasCotas || []).map(c => c.procedure_id));
+  const { data: todasCotas } = await supabaseAdmin.from('cotas').select('produto_id');
+  const comCota = new Set((todasCotas || []).map(c => c.produto_id));
   const semCota = todosProdutos?.filter(p => !comCota.has(p.id));
   console.log(`\n5. Produtos ativos SEM cota: ${semCota?.length || 0}`);
   semCota?.forEach(p => console.log(`   - ${p.nome} (${p.codigo})`));

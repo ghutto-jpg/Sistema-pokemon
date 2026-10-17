@@ -24,8 +24,17 @@ export default async function handler(req, res) {
     let categoriesCount = 0;
 
     if (req.body?.file) {
-      const base64 = String(req.body.file).replace(/^data:[^;]+;base64,/, '');
-      const buffer = Buffer.from(base64, 'base64');
+      const file = req.body.file;
+      let buffer;
+      if (Buffer.isBuffer(file?.data)) buffer = file.data;
+      else if (Buffer.isBuffer(file?.buffer)) buffer = file.buffer;
+      else if (Buffer.isBuffer(req.body?.buffer)) buffer = req.body.buffer;
+      else if (Buffer.isBuffer(file)) buffer = file;
+      else {
+        const raw = String(file?.data ?? file?.buffer ?? (typeof file === 'string' ? file : '') ?? '')
+          .replace(/^data:[^;]+;base64,/, '');
+        buffer = Buffer.from(raw, 'base64');
+      }
       if (!buffer.length) return res.status(400).json({ ok: false, error: 'Arquivo vazio' });
 
       try {

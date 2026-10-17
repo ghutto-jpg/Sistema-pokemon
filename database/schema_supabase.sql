@@ -17,7 +17,7 @@ create table if not exists produtos (
   caixa_master int not null default 1,
   preco_caixa_master numeric(12,2) not null default 0,
   pdv_sugerido numeric(12,2) not null default 0,
-  status text not null default 'DISPONíVEL' check (status in ('DISPONíVEL','A CONFIRMAR','INDISPONíVEL')),
+  status text not null default 'DISPONÍVEL' check (status in ('DISPONÍVEL','A CONFIRMAR','INDISPONÍVEL')),
   imagem text,
   ativo boolean not null default true,
   criado_em timestamptz default now()
@@ -67,7 +67,13 @@ alter table clientes enable row level security;
 alter table cotas enable row level security;
 alter table pedidos enable row level security;
 alter table pedido_itens enable row level security;
-alter table configuracoes enable row level security;
+create table if not exists rate_limits (
+  ip text primary key,
+  ts timestamptz not null default now(),
+  count int not null default 0
+);
+
+alter table rate_limits enable row level security;
 
 insert into tipos_loja (nome, desconto_padrao) values
   ('E-commerce',10),('Varejo',20),('Liga',20),('Clube',23),('Hobby Store',20),('Atacado',28)
@@ -149,7 +155,7 @@ begin
       raise exception 'Produto bloqueado para este cliente';
     end if;
 
-    v_box_size := coalesce(v_produto.caixa_master, 1);
+v_box_size := coalesce(nullif(v_produto.caixa_master, 0), 1);
 
     select coalesce(sum(floor(pi.quantidade / v_box_size)), 0)
     into v_consumido
@@ -163,7 +169,8 @@ begin
       if v_restante <= 0 then
         raise exception 'Produto sem cota disponível';
       end if;
-      if v_restante < v_item.quantidade then
+      -- v_item.quantidade está em UNIDADES; converte para CAIXAS para comparar com a cota
+      if v_restante < ceil(v_item.quantidade::numeric / v_box_size) then
         raise exception 'Quantidade acima da cota disponível para o produto';
       end if;
     end if;
@@ -174,8 +181,9 @@ begin
                          else v_preco_caixa_desc / v_produto.caixa_master::numeric
                     end;
 
+    -- quantity em UNIDADES, preço unitário por UNIDADE
     insert into pedido_itens (pedido_id, produto_id, quantidade, preco_unitario)
-    values (v_pedido_id, v_produto.id, v_item.quantidade * v_box_size, v_preco_unit);
+    values (v_pedido_id, v_produto.id, v_item.quantidade, v_preco_unit);
   end loop;
 
   return v_pedido_id;

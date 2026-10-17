@@ -14,16 +14,23 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ ok: false });
 
   try {
-    const file = req.body?.file;
+    const file = req.body?.file ?? req.body;
     if (!file) return res.status(400).json({ ok: false, error: 'file required' });
 
-    const type = file.type || '';
+    const type = file.type || file.mimetype || '';
     const ext = EXT[type];
     if (!ext) return res.status(400).json({ ok: false, error: 'Use PNG, JPG ou WEBP' });
 
-    // Remove o prefixo "data:image/png;base64," se o front mandar o dataURL inteiro
-    const raw = String(file.data || file.buffer || '').replace(/^data:[^;]+;base64,/, '');
-    const buffer = Buffer.from(raw, 'base64');
+    // Suporta JSON base64 (front) e upload multipart (Vercel popula file.buffer)
+    let buffer;
+    if (Buffer.isBuffer(file.data)) buffer = file.data;
+    else if (Buffer.isBuffer(file.buffer)) buffer = file.buffer;
+    else if (Buffer.isBuffer(req.body?.buffer)) buffer = req.body.buffer;
+    else {
+      const raw = String(file.data ?? file.buffer ?? (typeof file === 'string' ? file : '') ?? '')
+        .replace(/^data:[^;]+;base64,/, '');
+      buffer = Buffer.from(raw, 'base64');
+    }
     if (!buffer.length) return res.status(400).json({ ok: false, error: 'Arquivo vazio' });
     if (buffer.length > MAX_BYTES) return res.status(400).json({ ok: false, error: 'Arquivo > 1MB' });
 
